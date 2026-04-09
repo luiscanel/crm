@@ -12,7 +12,23 @@
       "dest": "/api/index.js"
     },
     {
-      "src": "/(.*)",
+      "src": "/auth/(.*)",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/empresas/(.*)",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/llamadas/(.*)",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/citas/(.*)",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/contactos/(.*)",
       "dest": "/api/index.js"
     }
   ]
