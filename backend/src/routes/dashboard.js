@@ -15,12 +15,12 @@ router.get('/general', authenticateToken, (req, res) => {
     const totalEmpresas = db.get('SELECT COUNT(*) as count FROM empresas');
     
     // Llamadas today/week/month
-    const llamadasHoy = db.get('SELECT COUNT(*) as count FROM llamadas WHERE fecha_llamada LIKE ?', [today + '%']);
-    const llamadasSemana = db.get('SELECT COUNT(*) as count FROM llamadas WHERE fecha_llamada >= ?', [startOfWeek + ' 00:00:00']);
-    const llamadasMes = db.get('SELECT COUNT(*) as count FROM llamadas WHERE fecha_llamada >= ?', [startOfMonth + ' 00:00:00']);
+    const llamadasHoy = db.get("SELECT COUNT(*) as count FROM llamadas WHERE fecha_llamada::date = CURRENT_DATE");
+    const llamadasSemana = db.get('SELECT COUNT(*) as count FROM llamadas WHERE fecha_llamada >= $1', [startOfWeek + ' 00:00:00']);
+    const llamadasMes = db.get('SELECT COUNT(*) as count FROM llamadas WHERE fecha_llamada >= $1', [startOfMonth + ' 00:00:00']);
     
     // Empresas contactadas hoy (unique)
-    const empresasContactadasHoy = db.get('SELECT COUNT(DISTINCT empresa_id) as count FROM llamadas WHERE fecha_llamada LIKE ?', [today + '%']);
+    const empresasContactadasHoy = db.get("SELECT COUNT(DISTINCT empresa_id) as count FROM llamadas WHERE fecha_llamada::date = CURRENT_DATE");
     
     // Leads interesados
     const leadsInteresados = db.get("SELECT COUNT(*) as count FROM empresas WHERE estado IN ('interesado', 'cita_agendada')");
@@ -29,7 +29,7 @@ router.get('/general', authenticateToken, (req, res) => {
     const citasPendientes = db.get("SELECT COUNT(*) as count FROM citas WHERE estado = 'pendiente'");
     
     // Citas realizadas este mes
-    const citasMes = db.get("SELECT COUNT(*) as count FROM citas WHERE estado = 'realizada' AND fecha_hora >= ?", [startOfMonth + ' 00:00:00']);
+    const citasMes = db.get("SELECT COUNT(*) as count FROM citas WHERE estado = 'realizada' AND fecha_hora::date >= $1", [startOfMonth]);
     
     // Get weekly goal from retos table
     const metaSemanal = db.get("SELECT meta FROM retos WHERE tipo = 'semanal' AND activo = 1 ORDER BY created_at DESC LIMIT 1");

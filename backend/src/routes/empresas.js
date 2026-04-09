@@ -13,7 +13,7 @@ router.get('/', authenticateToken, (req, res) => {
     let query = `
       SELECT e.*, 
         (SELECT COUNT(*) FROM llamadas WHERE empresa_id = e.id) as total_llamadas,
-        (SELECT COUNT(*) FROM llamadas WHERE empresa_id = e.id AND fecha_llamada LIKE DATE('now') || '%') as llamadas_hoy
+        (SELECT COUNT(*) FROM llamadas WHERE empresa_id = e.id AND fecha_llamada::date = CURRENT_DATE) as llamadas_hoy
       FROM empresas e
       WHERE 1=1
     `;

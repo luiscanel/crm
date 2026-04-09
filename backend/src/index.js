@@ -16,7 +16,8 @@ const corsOptions = {
     'http://localhost:5173',
     'http://localhost:3001',
     /\.vercel\.app$/,
-    /\.railway\.app$/
+    /\.railway\.app$/,
+    'https://kfohysmglpsdmobldsnk.supabase.co'
   ],
   credentials: true
 };
