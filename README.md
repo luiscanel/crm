@@ -92,11 +92,6 @@ VITE_API_URL=https://tu-backend.onrender.com/api
 - Railway (railway.app)
 - Heroku (heroku.com)
 
-## Credenciales por Defecto
-
-- Admin: `admin@crm.com` / `admin123`
-- Vendedor: `vendedor1@crm.com` / `admin123`
-
 ## API Endpoints
 
 - `POST /api/auth/login` - Iniciar sesión

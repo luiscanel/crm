@@ -138,15 +138,7 @@ export default function Login() {
               </button>
             </form>
 
-            {/* Demo credentials */}
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600 text-center">
-                <strong>Credenciales de prueba:</strong><br />
-                admin@crm.com / admin123<br />
-                vendedor1@crm.com / admin123
-              </p>
             </div>
-          </div>
         </div>
       </div>
     </div>
