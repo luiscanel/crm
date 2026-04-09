@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: crm-backend
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend/data:/app/data
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+    networks:
+      - crm-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: crm-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3001/api
+    depends_on:
+      - backend
+    networks:
+      - crm-network
+    restart: unless-stopped
+
+  # Production setup
+  frontend-prod:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    container_name: crm-frontend-prod
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_URL=http://backend:3001/api
+    depends_on:
+      - backend
+    networks:
+      - crm-network
+    restart: unless-stopped
+
+networks:
+  crm-network:
+    driver: bridge
