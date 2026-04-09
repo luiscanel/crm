@@ -1,5 +1,6 @@
 // Vercel API Route
 const express = require('express');
+const cors = require('cors');
 const authRoutes = require('./api/auth');
 const empresasRoutes = require('./api/empresas');
 const llamadasRoutes = require('./api/llamadas');
@@ -7,6 +8,7 @@ const citasRoutes = require('./api/citas');
 const contactosRoutes = require('./api/contactos');
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 // Routes with /api prefix
