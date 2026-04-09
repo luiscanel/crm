@@ -22,3 +22,6 @@ dist/
 
 # Misc
 .cache/
+
+# Temp CSV files
+*.csv
