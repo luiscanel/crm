@@ -1,4 +1,15 @@
-// Vercel API endpoint
-const app = require('./api/index');
-
-module.exports = app;
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.js"
+    }
+  ]
+}
