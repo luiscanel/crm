@@ -1,4 +1,5 @@
-const API_URL = '/api';
+// Use environment variable or fallback to relative path (for local dev)
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const getToken = () => localStorage.getItem('token');
 

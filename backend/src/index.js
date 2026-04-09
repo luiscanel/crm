@@ -10,8 +10,17 @@ const PORT = process.env.PORT || 3001;
 // Global db reference
 let db = null;
 
-// Middleware
-app.use(cors());
+// CORS - allow localhost and Vercel/Railway domains
+const corsOptions = {
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3001',
+    /\.vercel\.app$/,
+    /\.railway\.app$/
+  ],
+  credentials: true
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Make db available to routes
