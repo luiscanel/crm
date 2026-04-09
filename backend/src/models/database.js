@@ -314,7 +314,7 @@ async function initDatabase() {
         ['badge_conversion_30', 'Conversión Pro', 'Logra más de 30% de tasa de interés', '🎯', 'conversion', 30]);
     }
 
-    // Seed default admin user (password: admin123)
+    // Seed default admin user (change password after first login)
     const existingUsers = dbHelpers.get('SELECT COUNT(*) as count FROM users');
     if (!existingUsers || existingUsers.count === 0) {
       const bcrypt = require('bcryptjs');
@@ -322,11 +322,7 @@ async function initDatabase() {
       const hashedPassword = bcrypt.hashSync('admin123', 10);
       
       dbHelpers.run(`INSERT INTO users (id, email, password, name, role, puntos) VALUES (?, ?, ?, ?, ?, ?)`,
-        [uuidv4(), 'admin@crm.com', hashedPassword, 'Admin Principal', 'admin', 0]);
-      dbHelpers.run(`INSERT INTO users (id, email, password, name, role, puntos) VALUES (?, ?, ?, ?, ?, ?)`,
-        [uuidv4(), 'vendedor1@crm.com', hashedPassword, 'Vendedor 1', 'vendedor', 0]);
-      dbHelpers.run(`INSERT INTO users (id, email, password, name, role, puntos) VALUES (?, ?, ?, ?, ?, ?)`,
-        [uuidv4(), 'vendedor2@crm.com', hashedPassword, 'Vendedor 2', 'vendedor', 0]);
+        [uuidv4(), 'admin@crm.com', hashedPassword, 'Admin', 'admin', 0]);
     }
 
     // Seed daily challenge
