@@ -5,6 +5,8 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+console.log('DB connected to:', process.env.DATABASE_URL ? 'Supabase' : 'Default');
+
 function convertParams(sql, params) {
   if (!params || params.length === 0) return { sql, params };
   let paramIndex = 1;

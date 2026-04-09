@@ -9,11 +9,12 @@ const contactosRoutes = require('./api/contactos');
 const app = express();
 app.use(express.json());
 
-app.use('/auth', authRoutes);
-app.use('/empresas', empresasRoutes);
-app.use('/llamadas', llamadasRoutes);
-app.use('/citas', citasRoutes);
-app.use('/contactos', contactosRoutes);
+// Routes with /api prefix
+app.use('/api/auth', authRoutes);
+app.use('/api/empresas', empresasRoutes);
+app.use('/api/llamadas', llamadasRoutes);
+app.use('/api/citas', citasRoutes);
+app.use('/api/contactos', contactosRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
