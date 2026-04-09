@@ -1,35 +1,4 @@
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/index.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/index.js"
-    },
-    {
-      "src": "/auth/(.*)",
-      "dest": "/api/index.js"
-    },
-    {
-      "src": "/empresas/(.*)",
-      "dest": "/api/index.js"
-    },
-    {
-      "src": "/llamadas/(.*)",
-      "dest": "/api/index.js"
-    },
-    {
-      "src": "/citas/(.*)",
-      "dest": "/api/index.js"
-    },
-    {
-      "src": "/contactos/(.*)",
-      "dest": "/api/index.js"
-    }
-  ]
-}
+// Vercel API endpoint
+const app = require('./api/index');
+
+module.exports = app;

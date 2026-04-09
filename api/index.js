@@ -21,4 +21,5 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Export for Vercel
 module.exports = app;
