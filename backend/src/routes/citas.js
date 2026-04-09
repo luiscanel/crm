@@ -89,7 +89,7 @@ router.get('/upcoming', authenticateToken, (req, res) => {
 router.post('/', authenticateToken, (req, res) => {
   try {
     const db = req.db;
-    const { empresa_id, contacto_id, tipo, fecha_hora, notas } = req.body;
+    const { empresa_id, contacto_id, tipo, fecha_hora, notas, link_videollamada } = req.body;
 
     if (!empresa_id || !tipo || !fecha_hora) {
       return res.status(400).json({ error: 'Empresa, tipo y fecha de cita requeridos' });
@@ -104,8 +104,8 @@ router.post('/', authenticateToken, (req, res) => {
     const id = uuidv4();
 
     db.run(
-      `INSERT INTO citas (id, empresa_id, contacto_id, tipo, fecha_hora, estado, notas) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [id, empresa_id, contacto_id || null, tipo, fecha_hora, 'pendiente', notas || '']
+      `INSERT INTO citas (id, empresa_id, contacto_id, tipo, fecha_hora, estado, notas, link_videollamada) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, empresa_id, contacto_id || null, tipo, fecha_hora, 'pendiente', notas || '', link_videollamada || '']
     );
 
     // Assign points for scheduling cita (+10 points)

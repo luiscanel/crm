@@ -3,7 +3,7 @@ import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { 
   Plus, Search, Edit, Trash2, Eye, Building2, 
-  MapPin, Users, Phone, Mail, MessageCircle
+  MapPin, Users, Phone, Mail, MessageCircle, Download
 } from 'lucide-react';
 
 const estados = [
@@ -32,6 +32,8 @@ export default function Empresas() {
   });
   const [search, setSearch] = useState('');
   const [filterEstado, setFilterEstado] = useState('');
+  const [filterFechaDesde, setFilterFechaDesde] = useState('');
+  const [filterFechaHasta, setFilterFechaHasta] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     nombre: '',
@@ -52,11 +54,16 @@ export default function Empresas() {
 
   useEffect(() => {
     loadEmpresas();
-  }, [search, filterEstado]);
+  }, [search, filterEstado, filterFechaDesde, filterFechaHasta]);
 
   const loadEmpresas = async () => {
     try {
-      const data = await api.getEmpresas({ search, estado: filterEstado });
+      const data = await api.getEmpresas({ 
+        search, 
+        estado: filterEstado,
+        fecha_desde: filterFechaDesde,
+        fecha_hasta: filterFechaHasta
+      });
       setEmpresas(data);
     } catch (error) {
       console.error('Error:', error);
@@ -157,6 +164,28 @@ export default function Empresas() {
     ) : null;
   };
 
+  // Export to CSV
+  const exportToCSV = () => {
+    const headers = ['Nombre', 'Industria', 'Tamaño', 'Ubicación', 'Estado', 'Teléfono', 'Vendedor', 'Fecha Creación'];
+    const rows = empresas.map(e => [
+      e.nombre,
+      e.industria || '',
+      e.tamano || '',
+      e.ubicacion || '',
+      e.estado,
+      e.telefono || '',
+      e.vendedor_nombre || '',
+      new Date(e.created_at).toLocaleDateString('es-GT')
+    ]);
+    
+    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `empresas_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -171,6 +200,13 @@ export default function Empresas() {
         >
           <Plus size={20} />
           Nueva Empresa
+        </button>
+        <button
+          onClick={exportToCSV}
+          className="btn btn-outline flex items-center gap-2"
+        >
+          <Download size={20} />
+          Exportar CSV
         </button>
       </div>
 
@@ -196,6 +232,20 @@ export default function Empresas() {
             <option key={e.value} value={e.value}>{e.label}</option>
           ))}
         </select>
+        <input
+          type="date"
+          value={filterFechaDesde}
+          onChange={(e) => setFilterFechaDesde(e.target.value)}
+          className="input md:w-40"
+          placeholder="Desde"
+        />
+        <input
+          type="date"
+          value={filterFechaHasta}
+          onChange={(e) => setFilterFechaHasta(e.target.value)}
+          className="input md:w-40"
+          placeholder="Hasta"
+        />
       </div>
 
       {/* Table */}
@@ -476,6 +526,21 @@ export default function Empresas() {
                 <p className="text-sm text-gray-500">Estado</p>
                 {getEstadoBadge(showDetail.estado)}
               </div>
+              <div>
+                <p className="text-sm text-gray-500">Teléfono</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium">{showDetail.telefono || '-'}</p>
+                  {showDetail.telefono && (
+                    <a 
+                      href={`tel:${showDetail.telefono}`}
+                      className="p-1.5 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
+                      title="Llamar"
+                    >
+                      <Phone size={16} />
+                    </a>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="border-t pt-4">
@@ -571,6 +636,49 @@ export default function Empresas() {
                 ))
               ) : (
                 <p className="text-gray-500 text-center py-4">No hay llamadas registradas</p>
+              )}
+            </div>
+
+            {/* Notas */}
+            <div className="border-t pt-4 mt-4">
+              <h3 className="font-semibold mb-4">Notas</h3>
+              {showDetail.notas?.length > 0 ? (
+                showDetail.notas.slice(0, 5).map(nota => (
+                  <div key={nota.id} className="p-3 bg-yellow-50 rounded-lg mb-2">
+                    <p className="text-sm">{nota.contenido}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {nota.vendedor_nombre} - {new Date(nota.created_at).toLocaleString('es')}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">No hay notas</p>
+              )}
+            </div>
+
+            {/* Tareas */}
+            <div className="border-t pt-4 mt-4">
+              <h3 className="font-semibold mb-4">Tareas</h3>
+              {showDetail.tareas?.length > 0 ? (
+                showDetail.tareas.slice(0, 5).map(tarea => (
+                  <div key={tarea.id} className={`flex items-center justify-between p-3 rounded-lg mb-2 ${tarea.estado === 'completada' ? 'bg-green-50' : 'bg-orange-50'}`}>
+                    <div>
+                      <p className="text-sm font-medium">{tarea.titulo}</p>
+                      <p className="text-xs text-gray-500">
+                        {tarea.fecha_vencimiento && `Vence: ${new Date(tarea.fecha_vencimiento).toLocaleDateString('es')}`}
+                      </p>
+                    </div>
+                    <span className={`px-2 py-1 rounded text-xs ${
+                      tarea.prioridad === 'alta' ? 'bg-red-100 text-red-700' :
+                      tarea.prioridad === 'media' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-green-100 text-green-700'
+                    }`}>
+                      {tarea.prioridad}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">No hay tareas</p>
               )}
             </div>
           </div>

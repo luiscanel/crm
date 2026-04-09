@@ -163,9 +163,10 @@ router.get('/stats/daily', authenticateToken, (req, res) => {
       [req.user.id, today + '%']
     );
 
-    // Goal: 25 calls, 25 unique empresas
-    const metaLlamadas = 25;
-    const metaEmpresas = 25;
+    // Get goals from retos table
+    const metaDiaria = db.get("SELECT meta FROM retos WHERE tipo = 'diario' AND activo = 1 ORDER BY created_at DESC LIMIT 1");
+    const metaLlamadas = metaDiaria?.meta || 25;
+    const metaEmpresas = metaLlamadas; // Same target for both
 
     res.json({
       llamadas_hoy: llamadasHoy.count,

@@ -232,5 +232,53 @@ export const api = {
   getActivity: (params = {}) => {
     const query = new URLSearchParams(params).toString();
     return fetch(`${API_URL}/dashboard/activity?${query}`, { headers: headers() }).then(res => res.json());
-  }
+  },
+
+  // Notas
+  getNotas: (empresa_id) =>
+    fetch(`${API_URL}/empresa/${empresa_id}/notas`, { headers: headers() }).then(res => res.json()),
+
+  createNota: (data) =>
+    fetch(`${API_URL}/notas`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(data)
+    }).then(res => res.json()),
+
+  deleteNota: (id) =>
+    fetch(`${API_URL}/notas/${id}`, {
+      method: 'DELETE',
+      headers: headers()
+    }).then(res => res.json()),
+
+  // Tareas
+  getMisTareas: () =>
+    fetch(`${API_URL}/mis-tareas`, { headers: headers() }).then(res => res.json()),
+
+  getTareasEmpresa: (empresa_id) =>
+    fetch(`${API_URL}/empresa/${empresa_id}/tareas`, { headers: headers() }).then(res => res.json()),
+
+  createTarea: (data) =>
+    fetch(`${API_URL}/tareas`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(data)
+    }).then(res => res.json()),
+
+  updateTarea: (id, data) =>
+    fetch(`${API_URL}/tareas/${id}`, {
+      method: 'PUT',
+      headers: headers(),
+      body: JSON.stringify(data)
+    }).then(res => res.json()),
+
+  deleteTarea: (id) =>
+    fetch(`${API_URL}/tareas/${id}`, {
+      method: 'DELETE',
+      headers: headers()
+    }).then(res => res.json()),
+
+  // Dashboard conversion data
+  getConversionData: () => 
+    fetch(`${API_URL}/dashboard/conversion`, { headers: headers() }).then(res => res.json())
 };

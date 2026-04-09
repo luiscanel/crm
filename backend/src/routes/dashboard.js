@@ -31,8 +31,11 @@ router.get('/general', authenticateToken, (req, res) => {
     // Citas realizadas este mes
     const citasMes = db.get("SELECT COUNT(*) as count FROM citas WHERE estado = 'realizada' AND fecha_hora >= ?", [startOfMonth + ' 00:00:00']);
     
-    // Calculate goal compliance (25 calls/day target)
-    const metaDiaria = 25;
+    // Get weekly goal from retos table
+    const metaSemanal = db.get("SELECT meta FROM retos WHERE tipo = 'semanal' AND activo = 1 ORDER BY created_at DESC LIMIT 1");
+    const metaSemanalValor = metaSemanal?.meta || 125;
+    
+    // Calculate goal compliance
     const cumplimientoLlamadas = Math.min((llamadasHoy.count / metaDiaria) * 100, 100);
     
     res.json({
@@ -46,7 +49,8 @@ router.get('/general', authenticateToken, (req, res) => {
       leads_interesados: leadsInteresados.count,
       citas_pendientes: citasPendientes.count,
       citas_mes: citasMes.count,
-      cumplimiento_meta: cumplimientoLlamadas.toFixed(1)
+      cumplimiento_meta: cumplimientoLlamadas.toFixed(1),
+      meta_semanal: metaSemanalValor
     });
   } catch (error) {
     console.error('Get general stats error:', error);
@@ -462,6 +466,58 @@ router.get('/vendedor/:id/diario', authenticateToken, (req, res) => {
   } catch (error) {
     console.error('Get daily metrics error:', error);
     res.status(500).json({ error: 'Error al obtener métricas diarias' });
+  }
+});
+
+// Get conversion funnel data
+router.get('/conversion', authenticateToken, (req, res) => {
+  try {
+    const db = req.db;
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    
+    // Total llamadas este mes
+    const totalLlamadas = db.get(
+      'SELECT COUNT(*) as count FROM llamadas WHERE fecha_llamada >= ?',
+      [startOfMonth + ' 00:00:00']
+    );
+    
+    // Llamadas efectivas (estado: llamado efectivo o interesado)
+    const llamadasEfectivas = db.get(
+      "SELECT COUNT(*) as count FROM llamadas WHERE fecha_llamada >= ? AND estado IN ('llamada_efectiva', 'interesado')",
+      [startOfMonth + ' 00:00:00']
+    );
+    
+    // Citas agendadas este mes
+    const citasAgendadas = db.get(
+      "SELECT COUNT(*) as count FROM citas WHERE DATE(fecha_hora) >= ?",
+      [startOfMonth]
+    );
+    
+    // Citas realizadas
+    const citasRealizadas = db.get(
+      "SELECT COUNT(*) as count FROM citas WHERE DATE(fecha_hora) >= ? AND estado = 'realizada'",
+      [startOfMonth]
+    );
+    
+    // Empresas cerradas este mes
+    const empresasCerradas = db.get(
+      "SELECT COUNT(*) as count FROM empresas WHERE DATE(updated_at) >= ? AND estado = 'cerrado'",
+      [startOfMonth]
+    );
+    
+    res.json({
+      llamadas: totalLlamadas.count,
+      llamadas_efectivas: llamadasEfectivas.count,
+      citas_agendadas: citasAgendadas.count,
+      citas_realizadas: citasRealizadas.count,
+      empresas_cerradas: empresasCerradas.count,
+      tasa_conversion: totalLlamadas.count > 0 
+        ? ((empresasCerradas.count / totalLlamadas.count) * 100).toFixed(1) 
+        : 0
+    });
+  } catch (error) {
+    console.error('Get conversion error:', error);
+    res.status(500).json({ error: 'Error al obtener conversión' });
   }
 });
 

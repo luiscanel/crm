@@ -113,10 +113,42 @@ async function initDatabase() {
         fecha_hora DATETIME NOT NULL,
         estado TEXT DEFAULT 'pendiente',
         notas TEXT,
+        link_videollamada TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
         FOREIGN KEY (contacto_id) REFERENCES contactos(id),
+        FOREIGN KEY (vendedor_id) REFERENCES users(id)
+      )
+    `);
+
+    // Notas por empresa
+    db.run(`
+      CREATE TABLE IF NOT EXISTS notas (
+        id TEXT PRIMARY KEY,
+        empresa_id TEXT NOT NULL,
+        vendedor_id TEXT NOT NULL,
+        contenido TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+        FOREIGN KEY (vendedor_id) REFERENCES users(id)
+      )
+    `);
+
+    // Tareas pendientes
+    db.run(`
+      CREATE TABLE IF NOT EXISTS tareas (
+        id TEXT PRIMARY KEY,
+        empresa_id TEXT NOT NULL,
+        vendedor_id TEXT NOT NULL,
+        titulo TEXT NOT NULL,
+        descripcion TEXT,
+        fecha_vencimiento DATE,
+        estado TEXT DEFAULT 'pendiente',
+        prioridad TEXT DEFAULT 'media',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
         FOREIGN KEY (vendedor_id) REFERENCES users(id)
       )
     `);
@@ -306,12 +338,65 @@ async function initDatabase() {
       const bcrypt = require('bcryptjs');
       const { v4: uuidv4 } = require('uuid');
       
+      // Badges de Llamadas
       dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
         ['badge_llamadas_100', 'Máquina de Llamadas', 'Realiza 100 llamadas', '📞', 'llamadas', 100]);
       dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_llamadas_250', 'Teléfono de Plata', 'Realiza 250 llamadas', '📞', 'llamadas', 250]);
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_llamadas_500', 'Teléfono de Oro', 'Realiza 500 llamadas', '📞', 'llamadas', 500]);
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_llamadas_1000', 'Maestro del Teléfono', 'Realiza 1000 llamadas', '📞', 'llamadas', 1000]);
+      
+      // Badges de Citas
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
         ['badge_citas_20', 'Cazador de Citas', 'Agenda 20 citas', '📅', 'citas', 20]);
       dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_citas_50', 'Agendador Profesional', 'Agenda 50 citas', '📅', 'citas', 50]);
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_citas_100', 'Señor de las Citas', 'Agenda 100 citas', '📅', 'citas', 100]);
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_citas_250', 'Creador de Oportunidades', 'Agenda 250 citas', '📅', 'citas', 250]);
+      
+      // Badges de Conversion
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
         ['badge_conversion_30', 'Conversión Pro', 'Logra más de 30% de tasa de interés', '🎯', 'conversion', 30]);
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_conversion_50', 'Conquistador', 'Logra más de 50% de tasa de interés', '🎯', 'conversion', 50]);
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_conversion_75', 'Estrella de Ventas', 'Logra más de 75% de tasa de interés', '🎯', 'conversion', 75]);
+      
+      // Badges de Contactos Efectivos
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_contactos_50', 'Conectador', 'Logra 50 contactos efectivos', '🤝', 'contactos', 50]);
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_contactos_100', 'Relaciones Públicas', 'Logra 100 contactos efectivos', '🤝', 'contactos', 100]);
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_contactos_250', 'Rey de las Relaciones', 'Logra 250 contactos efectivos', '🤝', 'contactos', 250]);
+      
+      // Badges de Empresas Creadas
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_empresas_50', 'Cazador de Negocios', 'Crea 50 empresas', '🏢', 'empresas', 50]);
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_empresas_100', 'Constructor de Cartera', 'Crea 100 empresas', '🏢', 'empresas', 100]);
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_empresas_250', 'Imperio Empresarial', 'Crea 250 empresas', '🏢', 'empresas', 250]);
+      
+      // Badges de Racha/Días seguidos
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_racha_7', 'En Llamas', '7 días seguidos de actividad', '🔥', 'racha', 7]);
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_racha_14', 'Fuego Ardiente', '14 días seguidos de actividad', '🔥', 'racha', 14]);
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_racha_30', 'Invencible', '30 días seguidos de actividad', '🔥', 'racha', 30]);
+      
+      // Badges de Puntos
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_puntos_500', 'Coleccionista', 'Acumula 500 puntos', '⭐', 'puntos', 500]);
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_puntos_1000', 'Estrella Emergente', 'Acumula 1000 puntos', '⭐', 'puntos', 1000]);
+      dbHelpers.run(`INSERT INTO badges (id, nombre, descripcion, icono, tipo, requisito) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['badge_puntos_2500', 'Campeón', 'Acumula 2500 puntos', '⭐', 'puntos', 2500]);
     }
 
     // Seed default admin user

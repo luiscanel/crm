@@ -27,7 +27,8 @@ export default function Citas() {
     contacto_id: '',
     tipo: 'llamada',
     fecha_hora: '',
-    notas: ''
+    notas: '',
+    link_videollamada: ''
   });
 
   useEffect(() => {
@@ -205,6 +206,16 @@ export default function Citas() {
                         {cita.notas && (
                           <p className="text-sm text-gray-500 mt-1">{cita.notas}</p>
                         )}
+                        {cita.link_videollamada && (
+                          <a 
+                            href={cita.link_videollamada} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:underline flex items-center gap-1 mt-1"
+                          >
+                            <Video size={14} /> Unirse a videollamada
+                          </a>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -299,6 +310,17 @@ export default function Citas() {
                   className="input"
                   rows={3}
                   placeholder="Tema a tratar, información relevante..."
+                />
+              </div>
+
+              <div>
+                <label className="label">Link de Videollamada (Zoom/Meet)</label>
+                <input
+                  type="url"
+                  value={formData.link_videollamada}
+                  onChange={(e) => setFormData({ ...formData, link_videollamada: e.target.value })}
+                  className="input"
+                  placeholder="https://zoom.us/... o https://meet.google.com/..."
                 />
               </div>
 

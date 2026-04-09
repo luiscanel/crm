@@ -2,7 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   LayoutDashboard, Users, Building2, Phone, Calendar, 
-  Trophy, FileText, LogOut, Menu, X
+  Trophy, FileText, LogOut, Menu, X, CheckSquare
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -21,6 +21,7 @@ export default function Layout() {
     { to: '/empresas', icon: Building2, label: 'Empresas' },
     { to: '/llamadas', icon: Phone, label: 'Llamadas' },
     { to: '/citas', icon: Calendar, label: 'Citas' },
+    { to: '/tareas', icon: CheckSquare, label: 'Tareas' },
     { to: '/gamificacion', icon: Trophy, label: 'Gamificación' },
   ];
 

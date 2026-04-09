@@ -1,0 +1,2 @@
+                csrf_token: "e22c5a283a71acfb7945d85bdffffc1bb3f813c1o1807238482",
+                <input type="hidden" name="csrf_token" value="ab222c615159a0085c0c727841265000818c99d9o1807238481"/>

@@ -31,6 +31,7 @@ export default function Dashboard() {
   const [generalStats, setGeneralStats] = useState(null);
   const [dailyStats, setDailyStats] = useState(null);
   const [chartData, setChartData] = useState([]);
+  const [conversionData, setConversionData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [gamificacionStats, setGamificacionStats] = useState(null);
   const [fraseDelDia, setFraseDelDia] = useState('');
@@ -45,18 +46,20 @@ export default function Dashboard() {
 
   const loadData = async () => {
     try {
-      const [general, daily, charts, gamStats, citas] = await Promise.all([
+      const [general, daily, charts, gamStats, citas, convData] = await Promise.all([
         api.getDashboardGeneral(),
         api.getLlamadasDaily(),
         api.getDashboardCharts(7),
         api.getDashboardStats(),
-        api.getCitasUpcoming()
+        api.getCitasUpcoming(),
+        api.getConversionData()
       ]);
       setGeneralStats(general);
       setDailyStats(daily);
       setChartData(charts);
       setGamificacionStats(gamStats);
       setCitasProximas(citas || []);
+      setConversionData(convData);
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
@@ -255,13 +258,13 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="text-sm text-gray-500">
-            {generalStats?.llamadas?.semana >= 125 ? (
+            {generalStats?.llamadas?.semana >= (generalStats?.meta_semanal || 125) ? (
               <span className="text-green-600 flex items-center gap-1">
-                <ArrowUp size={16} /> ¡Excelente semana!
+                <ArrowUp size={16} /> ¡Meta alcanzada!
               </span>
             ) : (
               <span className="flex items-center gap-1">
-                <ArrowDown size={16} /> {125 - (generalStats?.llamadas?.semana || 0)} para meta semanal
+                <ArrowDown size={16} /> {(generalStats?.meta_semanal || 125) - (generalStats?.llamadas?.semana || 0)} para meta semanal
               </span>
             )}
           </div>
@@ -283,6 +286,41 @@ export default function Dashboard() {
           <div className="text-sm text-gray-500">
             {generalStats?.citas_mes || 0} citasrealizadas
           </div>
+        </div>
+
+        {/* Conversion Funnel */}
+        <div className="card">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <Target className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Conversión</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {conversionData?.tasa_conversion || 0}%
+              </p>
+            </div>
+          </div>
+          {conversionData && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Llamadas</span>
+                <span className="font-medium">{conversionData.llamadas}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Efectivas</span>
+                <span className="font-medium text-green-600">{conversionData.llamadas_efectivas}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Citas</span>
+                <span className="font-medium text-purple-600">{conversionData.citas_agendadas}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Cerradas</span>
+                <span className="font-medium text-green-700">{conversionData.empresas_cerradas}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Points */}

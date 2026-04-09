@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/', authenticateToken, (req, res) => {
   try {
     const db = req.db;
-    const { estado, vendedor_id, search } = req.query;
+    const { estado, vendedor_id, search, fecha_desde, fecha_hasta } = req.query;
     
     let query = `
       SELECT e.*, 
@@ -36,6 +36,16 @@ router.get('/', authenticateToken, (req, res) => {
       query += ' AND (e.nombre LIKE ? OR e.industria LIKE ? OR e.ubicacion LIKE ?)';
       const searchTerm = `%${search}%`;
       params.push(searchTerm, searchTerm, searchTerm);
+    }
+
+    if (fecha_desde) {
+      query += ' AND DATE(e.created_at) >= ?';
+      params.push(fecha_desde);
+    }
+
+    if (fecha_hasta) {
+      query += ' AND DATE(e.created_at) <= ?';
+      params.push(fecha_hasta);
     }
 
     query += ' ORDER BY e.created_at DESC';
@@ -79,7 +89,25 @@ router.get('/:id', authenticateToken, (req, res) => {
       ORDER BY ct.fecha_hora DESC
     `, [req.params.id]);
 
-    res.json({ ...empresa, contactos, llamadas, citas });
+    // Get notas
+    const notas = db.all(`
+      SELECT n.*, u.name as vendedor_nombre
+      FROM notas n
+      LEFT JOIN users u ON n.vendedor_id = u.id
+      WHERE n.empresa_id = ?
+      ORDER BY n.created_at DESC
+    `, [req.params.id]);
+
+    // Get tareas
+    const tareas = db.all(`
+      SELECT t.*, u.name as vendedor_nombre
+      FROM tareas t
+      LEFT JOIN users u ON t.vendedor_id = u.id
+      WHERE t.empresa_id = ?
+      ORDER BY t.created_at DESC
+    `, [req.params.id]);
+
+    res.json({ ...empresa, contactos, llamadas, citas, notas, tareas });
   } catch (error) {
     console.error('Get empresa error:', error);
     res.status(500).json({ error: 'Error al obtener empresa' });

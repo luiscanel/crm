@@ -91,6 +91,25 @@ router.post('/badges/check', authenticateToken, (req, res) => {
       ? (empresasInteresadas.count / totalLlamadas.count) * 100 
       : 0;
     
+    // Contactos efectivos
+    const contactosEfectivos = db.get(
+      'SELECT COUNT(*) as count FROM llamadas WHERE vendedor_id = ? AND es_contacto_efectivo = 1',
+      [userId]
+    );
+    
+    // Empresas creadas
+    const empresasCreadas = db.get(
+      'SELECT COUNT(*) as count FROM empresas WHERE vendedor_id = ?',
+      [userId]
+    );
+    
+    // Puntos del usuario
+    const userPuntos = db.get('SELECT puntos FROM users WHERE id = ?', [userId]);
+    const userPuntosCount = userPuntos?.puntos || 0;
+    
+    // Racha (días seguidos) - por ahora simplificado
+    const rachaDias = 0; // Se implementaría con lógica de tracking diario
+    
     // Check each badge
     const allBadges = db.all('SELECT * FROM badges');
     const newBadges = [];
@@ -112,6 +131,18 @@ router.post('/badges/check', authenticateToken, (req, res) => {
         case 'conversion':
           earned = conversionRate >= badge.requisito;
           break;
+        case 'contactos':
+          earned = (contactosEfectivos?.count || 0) >= badge.requisito;
+          break;
+        case 'empresas':
+          earned = (empresasCreadas?.count || 0) >= badge.requisito;
+          break;
+        case 'puntos':
+          earned = userPuntosCount >= badge.requisito;
+          break;
+        case 'racha':
+          earned = rachaDias >= badge.requisito;
+          break;
       }
       
       if (earned) {
@@ -126,7 +157,10 @@ router.post('/badges/check', authenticateToken, (req, res) => {
       stats: {
         total_llamadas: totalLlamadas.count,
         citas_agendadas: citasAgendadas.count,
-        conversion_rate: conversionRate.toFixed(2)
+        conversion_rate: conversionRate.toFixed(2),
+        contactos_efectivos: contactosEfectivos?.count || 0,
+        empresas_creadas: empresasCreadas?.count || 0,
+        puntos: userPuntosCount
       }
     });
   } catch (error) {
@@ -583,6 +617,22 @@ router.get('/dashboard-stats', authenticateToken, (req, res) => {
       } else if (nextBadge.tipo === 'puntos') {
         userProgress = db.get('SELECT puntos FROM users WHERE id = ?', [userId]).puntos;
         progressLabel = `${userProgress}/${nextBadge.requisito} puntos`;
+      } else if (nextBadge.tipo === 'empresas') {
+        userProgress = db.get('SELECT COUNT(*) as count FROM empresas WHERE vendedor_id = ?', [userId]).count;
+        progressLabel = `${userProgress}/${nextBadge.requisito} empresas`;
+      } else if (nextBadge.tipo === 'conversion') {
+        const totalLlamadas = db.get('SELECT COUNT(*) as count FROM llamadas WHERE vendedor_id = ?', [userId]);
+        const empresasInteresadas = db.get(
+          `SELECT COUNT(DISTINCT e.id) as count FROM empresas e WHERE e.vendedor_id = ? AND e.estado IN ('interesado', 'cita_agendada')`,
+          [userId]
+        );
+        userProgress = totalLlamadas.count > 0 
+          ? (empresasInteresadas.count / totalLlamadas.count) * 100 
+          : 0;
+        progressLabel = `${userProgress.toFixed(1)}%/${nextBadge.requisito}% conversión`;
+      } else if (nextBadge.tipo === 'racha') {
+        userProgress = streak;
+        progressLabel = `${userProgress}/${nextBadge.requisito} días seguidos`;
       }
     }
     
