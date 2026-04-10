@@ -1,14 +1,26 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 
 const { initDatabase } = require('./models/database');
+const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
+const { logger, requestTimer } = require('./utils/logger');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Global db reference
-let db = null;
+// Security middleware
+app.use(helmet());
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: { success: false, error: 'Demasiadas solicitudes, intenta más tarde' }
+});
+app.use('/api/', limiter);
 
 // CORS - allow localhost and Vercel/Railway domains
 const corsOptions = {
@@ -22,22 +34,29 @@ const corsOptions = {
   credentials: true
 };
 app.use(cors(corsOptions));
+
+// Body parsing
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Request logging
+app.use(requestTimer);
 
 // Make db available to routes
 app.use((req, res, next) => {
-  req.db = db;
+  req.db = req.app.locals.db;
   next();
 });
 
-// Initialize database and then start server
+// Initialize database and start server
 async function startServer() {
   try {
     // Initialize database
-    db = initDatabase();
-    console.log('✅ Database connected');
+    const db = initDatabase();
+    app.locals.db = db;
+    logger.success('Database connected');
     
-    // Import routes after db is ready
+    // Import routes
     const authRoutes = require('./routes/auth');
     const empresasRoutes = require('./routes/empresas');
     const contactosRoutes = require('./routes/contactos');
@@ -61,7 +80,7 @@ async function startServer() {
 
     // Health check
     app.get('/api/health', (req, res) => {
-      res.json({ status: 'ok', message: 'Teknao CRM API running' });
+      res.json({ success: true, message: 'Teknao CRM API running', timestamp: new Date().toISOString() });
     });
 
     // Serve static files in production
@@ -73,17 +92,15 @@ async function startServer() {
       });
     }
 
-    // Error handling middleware
-    app.use((err, req, res, next) => {
-      console.error('Error:', err);
-      res.status(500).json({ error: 'Internal server error' });
-    });
+    // Error handling
+    app.use(notFoundHandler);
+    app.use(errorHandler);
 
     app.listen(PORT, () => {
-      console.log(`🚀 Teknao CRM API running on http://localhost:${PORT}`);
+      logger.success(`🚀 Teknao CRM API running on http://localhost:${PORT}`);
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logger.error('Failed to start server', { error: error.message });
     process.exit(1);
   }
 }
@@ -91,4 +108,3 @@ async function startServer() {
 startServer();
 
 module.exports = app;
-module.exports.getDb = () => db;
