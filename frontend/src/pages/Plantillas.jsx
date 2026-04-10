@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
+import { useAuth } from '../context/AuthContext';
 import { 
   MessageSquare, Phone, Mail, Copy, Check, Search, 
   Send, X, User, Building2
@@ -13,6 +14,7 @@ const canales = [
 ];
 
 export default function Plantillas() {
+  const { user } = useAuth();
   const [plantillas, setPlantillas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -21,17 +23,20 @@ export default function Plantillas() {
   const [copied, setCopied] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   
-  // Datos para personalización
+  // Datos para personalización - se init con datos del usuario
   const [empresaNombre, setEmpresaNombre] = useState('');
   const [contactoNombre, setContactoNombre] = useState('');
-  const [vendedorNombre, setVendedorNombre] = useState('');
+  const [vendedorNombre, setVendedorNombre] = useState(user?.nombre || '');
   const [fecha, setFecha] = useState('');
   const [hora, setHora] = useState('');
   const [tipoReunion, setTipoReunion] = useState('videollamada');
 
   useEffect(() => {
     loadPlantillas();
-  }, []);
+    if (user?.nombre) {
+      setVendedorNombre(user.nombre);
+    }
+  }, [user]);
 
   const loadPlantillas = async () => {
     try {

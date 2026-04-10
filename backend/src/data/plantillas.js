@@ -4,11 +4,11 @@ const plantillas = [
     id: 'presentacion',
     nombre: 'Presentación Inicial',
     canal: 'whatsapp',
-    texto: `Hola [NOMBRE], te contacto de Teknao CRM.
+    texto: `Hola [NOMBRE], te contacto de Teknao.
 
-Somos una empresa especializada en soluciones de gestión empresarial B2B.
+Somos una empresa especializada en soluciones de IT.
 
-¿Te gustaría que te agendemos una breve llamada para mostrarte cómo podemos ayudarte a optimizar tus procesos de ventas?
+¿Te gustaría que te agendemos una breve llamada para mostrarte cómo podemos ayudarte a optimizar tu infraestructura tecnológica?
 
 Quedo atento/a a tu respuesta.`
   },
@@ -18,7 +18,7 @@ Quedo atento/a a tu respuesta.`
     canal: 'whatsapp',
     texto: `Hola [NOMBRE], gracias por tu tiempo en nuestra llamada de hoy.
 
-Como acordamos, te envío información adicional sobre nuestras soluciones.
+Como acordamos, te envío información adicional sobre nuestras soluciones de IT.
 
 ¿Tienes alguna duda que pueda aclararte?
 
@@ -28,7 +28,7 @@ Saludos cordiales.`
     id: 'cita_confirmacion',
     nombre: 'Confirmación de Cita',
     canal: 'whatsapp',
-    texto: `Hola [NOMBRE], confirmo tu cita con Teknao CRM para el [FECHA] a las [HORA].
+    texto: `Hola [NOMBRE], confirmo tu cita con Teknao para el [FECHA] a las [HORA].
 
 Nuestra reunión será vía [VIDEO/LLAMADA/PRESENCIAL].
 
@@ -40,9 +40,9 @@ Nuestra reunión será vía [VIDEO/LLAMADA/PRESENCIAL].
     id: 'cold_calling',
     nombre: 'Cold Calling - Primer Contacto',
     canal: 'telefono',
-    texto: `Buenos días/tardes, soy [VENDEDOR] de Teknao CRM.
+    texto: `Buenos días/tardes, soy [VENDEDOR] de Teknao.
 
-Le llamo porque trabajamos con empresas como la suya ofreciendo soluciones de gestión empresarial.
+Le llamo porque trabajamos con empresas como la suya ofreciendo soluciones de IT (infraestructura, ciberseguridad, cloud, etc.).
 
 ¿Tiene 2 minutos para comentarle de qué se trata?
 
@@ -53,7 +53,7 @@ Le llamo porque trabajamos con empresas como la suya ofreciendo soluciones de ge
     id: 'interesado',
     nombre: 'Lead Interesado',
     canal: 'whatsapp',
-    texto: `Hola [NOMBRE], me alegra saber que estás interesado/a en nuestras soluciones.
+    texto: `Hola [NOMBRE], me alegra saber que estás interesado/a en nuestras soluciones de IT.
 
 Te envío nuestra propuesta comercial para que la revises.
 
@@ -67,10 +67,10 @@ Quedo a tu disposición.`
     canal: 'email',
     texto: `Estimado/a [NOMBRE],
 
-Adjunto encontrará la propuesta comercial solicitada.
+Adjunto encontrará la propuesta comercial de Teknao.
 
 La propuesta incluye:
-- Descripción de las soluciones
+- Descripción de las soluciones de IT
 - Inversión y formas de pago
 - Cronograma de implementación
 - Garantías y soporte
@@ -82,13 +82,13 @@ Saludos cordiales,
   },
   {
     id: 'agradecimiento',
-    nombre: 'agradecimiento post-reunión',
+    nombre: 'Agradecimiento Post-Reunión',
     canal: 'email',
     texto: `Estimado/a [NOMBRE],
 
 Gracias por su tiempo en la reunión de hoy.
 
-Fue un placer conocer más sobre sus necesidades. Estoy seguro de que nuestra solución puede ayudarle a [BENEFICIO].
+Fue un placer conocer más sobre sus necesidades. Estoy seguro de que nuestras soluciones de IT pueden ayudarle a [BENEFICIO].
 
 Adjunto encontrará el resumen de lo hablado y los siguientes pasos acordados.
 
@@ -99,7 +99,7 @@ Saludos,
   },
   {
     id: 'seguimiento_2',
-    nombre: 'Seguimiento 2 semanas',
+    nombre: 'Seguimiento 2 Semanas',
     canal: 'whatsapp',
     texto: `Hola [NOMBRE], hope you're doing well!
 
