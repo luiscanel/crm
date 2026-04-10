@@ -15,14 +15,20 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
-    }).then(res => res.json()),
+    }).then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }),
 
   register: (data) => 
     fetch(`${API_URL}/auth/register`, {
       method: 'POST',
       headers: headers(),
       body: JSON.stringify(data)
-    }).then(res => res.json()),
+    }).then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }),
 
   getMe: () => 
     fetch(`${API_URL}/auth/me`, { headers: headers() }).then(res => res.json()),
@@ -133,7 +139,9 @@ export const api = {
   // Llamadas
   getLlamadas: (params = {}) => {
     const query = new URLSearchParams(params).toString();
-    return fetch(`${API_URL}/llamadas?${query}`, { headers: headers() }).then(res => res.json());
+    return fetch(`${API_URL}/llamadas?${query}`, { headers: headers() })
+      .then(res => res.json())
+      .catch(err => ({ error: err.message }));
   },
 
   createLlamada: (data) => 
@@ -141,16 +149,20 @@ export const api = {
       method: 'POST',
       headers: headers(),
       body: JSON.stringify(data)
-    }).then(res => res.json()),
+    }).then(res => res.json())
+    .catch(err => ({ error: err.message })),
 
   deleteLlamada: (id) => 
     fetch(`${API_URL}/llamadas/${id}`, {
       method: 'DELETE',
       headers: headers()
-    }).then(res => res.json()),
+    }).then(res => res.json())
+    .catch(err => ({ error: err.message })),
 
   getLlamadasDaily: () => 
-    fetch(`${API_URL}/llamadas/stats/daily`, { headers: headers() }).then(res => res.json()),
+    fetch(`${API_URL}/llamadas/stats/daily`, { headers: headers() })
+      .then(res => res.json())
+      .catch(err => ({ error: err.message })),
 
   getLlamadasWeek: () => 
     fetch(`${API_URL}/llamadas/stats/week`, { headers: headers() }).then(res => res.json()),
