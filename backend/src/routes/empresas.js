@@ -185,14 +185,14 @@ router.get('/:id', authenticateToken, (req, res) => {
 router.post('/', authenticateToken, (req, res) => {
   try {
     const db = req.db;
-    const { nombre, industria, tamano, ubicacion, telefono, email, vendedor_id } = req.body;
+    const { nombre, industria, tamano, ubicacion, telefono, email, sitio_web, vendedor_id } = req.body;
 
     // Validate input
     if (!nombre) {
       return res.status(400).json({ error: 'Nombre de empresa requerido' });
     }
 
-    const validationErrors = validateEmpresa({ nombre, industria, tamano, ubicacion, telefono, email });
+    const validationErrors = validateEmpresa({ nombre, industria, tamano, ubicacion, telefono, email, sitio_web });
     if (validationErrors.length > 0) {
       return res.status(400).json({ errors: validationErrors });
     }
@@ -201,8 +201,8 @@ router.post('/', authenticateToken, (req, res) => {
     const assignedVendedor = req.user.role === 'vendedor' ? req.user.id : (vendedor_id || req.user.id);
 
     db.run(
-      `INSERT INTO empresas (id, nombre, industria, tamano, ubicacion, telefono, estado, vendedor_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, nombre, industria || '', tamano || '', ubicacion || '', telefono || '', 'nuevo', assignedVendedor]
+      `INSERT INTO empresas (id, nombre, industria, tamano, ubicacion, telefono, email, sitio_web, estado, vendedor_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, nombre, industria || '', tamano || '', ubicacion || '', telefono || '', email || '', sitio_web || '', 'nuevo', assignedVendedor]
     );
 
     // Log activity
@@ -222,7 +222,7 @@ router.post('/', authenticateToken, (req, res) => {
 router.put('/:id', authenticateToken, (req, res) => {
   try {
     const db = req.db;
-    const { nombre, industria, tamano, ubicacion, telefono, email, estado, vendedor_id, fecha_cita, tipo_cita, notas_cita, fecha_seguimiento } = req.body;
+    const { nombre, industria, tamano, ubicacion, telefono, email, sitio_web, estado, vendedor_id, fecha_cita, tipo_cita, notas_cita, fecha_seguimiento } = req.body;
 
     const existing = db.get('SELECT * FROM empresas WHERE id = ?', [req.params.id]);
     if (!existing) {
@@ -245,12 +245,14 @@ router.put('/:id', authenticateToken, (req, res) => {
           tamano = COALESCE(?, tamano),
           ubicacion = COALESCE(?, ubicacion),
           telefono = COALESCE(?, telefono),
+          email = COALESCE(?, email),
+          sitio_web = COALESCE(?, sitio_web),
           estado = COALESCE(?, estado),
           vendedor_id = COALESCE(?, vendedor_id),
           fecha_seguimiento = COALESCE(?, fecha_seguimiento),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `, [nombre, industria, tamano, ubicacion, telefono, estado, vendedor_id, fecha_seguimiento, req.params.id]);
+    `, [nombre, industria, tamano, ubicacion, telefono, email, sitio_web, estado, vendedor_id, fecha_seguimiento, req.params.id]);
 
     // Auto-create cita when state changes to cita_agendada
     if (isChangingToCitaAgendada && fecha_cita) {

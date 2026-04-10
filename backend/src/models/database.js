@@ -66,6 +66,7 @@ function initDatabase() {
       ubicacion TEXT,
       telefono TEXT,
       email TEXT,
+      sitio_web TEXT,
       direccion TEXT,
       estado TEXT DEFAULT 'nuevo',
       vendedor_id TEXT,

@@ -3,7 +3,7 @@ import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { 
   Plus, Search, Edit, Trash2, Eye, Building2, 
-  MapPin, Users, Phone, Mail, MessageCircle, Download, Upload, FileText
+  MapPin, Users, Phone, Mail, MessageCircle, Download, Upload, FileText, ExternalLink
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -43,6 +43,8 @@ export default function Empresas() {
     tamano: '',
     ubicacion: '',
     telefono: '',
+    email: '',
+    sitio_web: '',
     estado: 'nuevo',
     vendedor_id: '',
     fecha_cita: '',
@@ -83,6 +85,9 @@ export default function Empresas() {
         industria: formData.industria,
         tamano: formData.tamano,
         ubicacion: formData.ubicacion,
+        telefono: formData.telefono,
+        email: formData.email,
+        sitio_web: formData.sitio_web,
         estado: formData.estado,
         vendedor_id: formData.vendedor_id || null,
         ...(editingId && formData.estado === 'cita_agendada' && {
@@ -146,12 +151,42 @@ export default function Empresas() {
   const handleAddContacto = async (e) => {
     e.preventDefault();
     try {
-      await api.createContacto({
-        empresa_id: showDetail.id,
-        ...contactoFormData
-      });
+      if (editingId) {
+        // Update existing contacto
+        await api.updateContacto(editingId, contactoFormData);
+      } else {
+        // Create new contacto
+        await api.createContacto({
+          empresa_id: showDetail.id,
+          ...contactoFormData
+        });
+      }
       setShowContactoModal(false);
       setContactoFormData({ nombre: '', cargo: '', telefono: '', email: '' });
+      setEditingId(null);
+      // Reload detail
+      const updated = await api.getEmpresa(showDetail.id);
+      setShowDetail(updated);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const handleEditContacto = (contacto) => {
+    setContactoFormData({
+      nombre: contacto.nombre,
+      cargo: contacto.cargo || '',
+      telefono: contacto.telefono || '',
+      email: contacto.email || ''
+    });
+    setEditingId(contacto.id);
+    setShowContactoModal(true);
+  };
+
+  const handleDeleteContacto = async (id) => {
+    if (!confirm('¿Eliminar este contacto?')) return;
+    try {
+      await api.deleteContacto(id);
       // Reload detail
       const updated = await api.getEmpresa(showDetail.id);
       setShowDetail(updated);
@@ -532,6 +567,26 @@ export default function Empresas() {
                   placeholder="5512345678"
                 />
               </div>
+              <div>
+                <label className="label">Email</label>
+                <input
+                  type="email"
+                  value={formData.email || ''}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="input"
+                  placeholder="contacto@empresa.com"
+                />
+              </div>
+              <div>
+                <label className="label">Sitio Web</label>
+                <input
+                  type="text"
+                  value={formData.sitio_web || ''}
+                  onChange={(e) => setFormData({ ...formData, sitio_web: e.target.value })}
+                  className="input"
+                  placeholder="https://empresa.com"
+                />
+              </div>
               {editingId && canEdit && (
                 <div>
                   <label className="label">Estado</label>
@@ -600,7 +655,7 @@ export default function Empresas() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => { setShowModal(false); setEditingId(null); setFormData({ nombre: '', industria: '', tamano: '', ubicacion: '', estado: 'nuevo', vendedor_id: '', fecha_cita: '', tipo_cita: 'reunion', notas_cita: '' }); }}
+                  onClick={() => { setShowModal(false); setEditingId(null); setFormData({ nombre: '', industria: '', tamano: '', ubicacion: '', telefono: '', email: '', sitio_web: '', estado: 'nuevo', vendedor_id: '', fecha_cita: '', tipo_cita: 'reunion', notas_cita: '', fecha_seguimiento: '' }); }}
                   className="btn btn-secondary flex-1"
                 >
                   Cancelar
@@ -657,6 +712,37 @@ export default function Empresas() {
                   )}
                 </div>
               </div>
+              <div>
+                <p className="text-sm text-gray-500">Email</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium">{showDetail.email || '-'}</p>
+                  {showDetail.email && (
+                    <a 
+                      href={`mailto:${showDetail.email}`}
+                      className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+                      title="Enviar Email"
+                    >
+                      <Mail size={16} />
+                    </a>
+                  )}
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Sitio Web</p>
+                {showDetail.sitio_web ? (
+                  <a 
+                    href={showDetail.sitio_web}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-primary-600 hover:underline flex items-center gap-1"
+                  >
+                    {showDetail.sitio_web.replace(/^https?:\/\//, '')}
+                    <ExternalLink size={14} />
+                  </a>
+                ) : (
+                  <p className="font-medium">-</p>
+                )}
+              </div>
             </div>
 
             <div className="border-t pt-4">
@@ -682,6 +768,22 @@ export default function Empresas() {
                             <div>
                               <p className="font-bold text-lg text-gray-900">{contacto.nombre}</p>
                               <p className="text-sm text-blue-600 font-medium">{contacto.cargo || 'Sin cargo'}</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button 
+                                onClick={() => handleEditContacto(contacto)}
+                                className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                                title="Editar contacto"
+                              >
+                                <Edit2 size={18} />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteContacto(contacto.id)}
+                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Eliminar contacto"
+                              >
+                                <Trash2 size={18} />
+                              </button>
                             </div>
                           </div>
                           <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
@@ -801,12 +903,12 @@ export default function Empresas() {
         </div>
       )}
 
-      {/* Add Contacto Modal */}
+      {/* Add/Edit Contacto Modal */}
       {showContactoModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl w-full max-w-md p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-6">
-              Agregar Contacto
+              {editingId ? 'Editar Contacto' : 'Agregar Contacto'}
             </h2>
             <form onSubmit={handleAddContacto} className="space-y-4">
               <div>
@@ -849,7 +951,7 @@ export default function Empresas() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowContactoModal(false)}
+                  onClick={() => { setShowContactoModal(false); setEditingId(null); setContactoFormData({ nombre: '', cargo: '', telefono: '', email: '' }); }}
                   className="btn btn-secondary flex-1"
                 >
                   Cancelar
