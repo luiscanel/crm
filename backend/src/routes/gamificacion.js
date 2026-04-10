@@ -1,5 +1,7 @@
 const express = require('express');
+const { v4: uuidv4 } = require('uuid');
 const { authenticateToken } = require('../middleware/auth');
+const { notifyPremioCanjeado } = require('../services/websocket');
 
 const router = express.Router();
 
@@ -465,6 +467,13 @@ router.post('/aprobar-solicitud', authenticateToken, (req, res) => {
       );
       
       res.json({ message: 'Premio aprobado', estado: 'aprobado' });
+      
+      // Send WebSocket notification
+      try {
+        notifyPremioCanjeado(solicitud.usuario_id, { nombre: premio.nombre, costo: solicitud.puntos_gastados });
+      } catch (wsError) {
+        console.error('WebSocket notification error:', wsError);
+      }
     } else {
       // Just reject
       db.run("UPDATE solicitudes_premios SET estado = ?, resuelta_at = datetime('now'), resuelta_por = ? WHERE id = ?", ['rechazado', req.user.id, solicitud_id]);

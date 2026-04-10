@@ -1,4 +1,5 @@
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -8,6 +9,7 @@ const { initDatabase } = require('./models/database');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { logger, requestTimer } = require('./utils/logger');
 const { swaggerUi, specs } = require('./utils/swagger');
+const { init: initWebSocket } = require('./services/websocket');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -108,8 +110,11 @@ async function startServer() {
     app.use(notFoundHandler);
     app.use(errorHandler);
 
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       logger.success(`🚀 Teknao CRM API running on http://localhost:${PORT}`);
+      
+      // Initialize WebSocket
+      initWebSocket(server);
     });
   } catch (error) {
     logger.error('Failed to start server', { error: error.message });

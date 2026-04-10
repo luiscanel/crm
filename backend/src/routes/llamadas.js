@@ -1,6 +1,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { authenticateToken } = require('../middleware/auth');
+const { notifyLlamadaCompletada, notifyEmpresaActualizada } = require('../services/websocket');
 
 const router = express.Router();
 
@@ -133,6 +134,16 @@ router.post('/', authenticateToken, (req, res) => {
       puntos_totales: userUpdated.puntos,
       es_duplicada: esDuplicada
     });
+    
+    // Send WebSocket notification
+    try {
+      notifyLlamadaCompletada(req.user.id, empresa.nombre, puntosGanados);
+      if (nuevoEstadoEmpresa !== empresa.estado) {
+        notifyEmpresaActualizada(req.user.id, { nombre: empresa.nombre, estado: nuevoEstadoEmpresa });
+      }
+    } catch (wsError) {
+      console.error('WebSocket notification error:', wsError);
+    }
   } catch (error) {
     console.error('Create llamada error:', error);
     res.status(500).json({ error: 'Error al registrar llamada' });
