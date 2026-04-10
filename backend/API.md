@@ -28,6 +28,9 @@ Authorization: Bearer <token>
 | POST | `/api/empresas` | Crear empresa |
 | PUT | `/api/empresas/:id` | Actualizar empresa |
 | DELETE | `/api/empresas/:id` | Eliminar empresa |
+| GET | `/api/empresas/export` | Exportar a CSV |
+| POST | `/api/empresas/import` | Importar desde CSV |
+| GET | `/api/empresas/stats/summary` | Estadísticas resumidas |
 
 ### Contactos
 | Método | Ruta | Descripción |
@@ -37,6 +40,8 @@ Authorization: Bearer <token>
 | POST | `/api/contactos` | Crear contacto |
 | PUT | `/api/contactos/:id` | Actualizar contacto |
 | DELETE | `/api/contactos/:id` | Eliminar contacto |
+| GET | `/api/contactos/export` | Exportar a CSV |
+| POST | `/api/contactos/import` | Importar desde CSV |
 
 ### Llamadas
 | Método | Ruta | Descripción |
@@ -93,6 +98,28 @@ Authorization: Bearer <token>
 - `403` - No autorizado
 - `404` - No encontrado
 - `500` - Error del servidor
+
+## Validación de Inputs
+La API valida todos los datos de entrada:
+
+### Empresas
+- **nombre**: Requerido, 2-200 caracteres
+- **email**: Formato válido (opcional)
+- **telefono**: Formato válido (7-20 dígitos, opcional)
+- **estado**: Valores válidos: nuevo, contactado, interesado, cita_agendada, seguimiento, cerrado
+- **tamano**: Valores válidos: Micro, Pequeña, Mediana, Grande, Corporación
+
+### Contactos
+- **nombre**: Requerido, mínimo 2 caracteres
+- **email**: Formato válido (opcional)
+- **telefono**: Formato válido (7-20 dígitos, opcional)
+- **canal_preferido**: Valores válidos: telefono, email, whatsapp, presencial, linkedin
+- **nivel_interes**: Valores válidos: bajo, medio, alto
+
+### Importación Masiva
+- Máximo 500 registros por importación
+- Requiere validación de campos obligatorios
+- Retorna errores por cada fila fallida
 
 ## Puntos por Acción
 | Acción | Puntos |
