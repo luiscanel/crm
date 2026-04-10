@@ -69,6 +69,19 @@ export const api = {
   getEmpresaStats: () => 
     fetch(`${API_URL}/empresas/stats/summary`, { headers: headers() }).then(res => res.json()),
 
+  // Export/Import Empresas
+  exportEmpresas: () => 
+    fetch(`${API_URL}/empresas/export`, { 
+      headers: { 'Authorization': `Bearer ${getToken()}` } 
+    }).then(res => res.blob()),
+
+  importEmpresas: (empresas) => 
+    fetch(`${API_URL}/empresas/import`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ empresas })
+    }).then(res => res.json()),
+
   // Contactos
   getContactos: (empresaId) => {
     const query = empresaId ? `?empresa_id=${empresaId}` : '';
@@ -93,6 +106,21 @@ export const api = {
     fetch(`${API_URL}/contactos/${id}`, {
       method: 'DELETE',
       headers: headers()
+    }).then(res => res.json()),
+
+  // Export/Import Contactos
+  exportContactos: (empresaId) => {
+    const query = empresaId ? `?empresa_id=${empresaId}` : '';
+    return fetch(`${API_URL}/contactos/export${query}`, { 
+      headers: { 'Authorization': `Bearer ${getToken()}` } 
+    }).then(res => res.blob());
+  },
+
+  importContactos: (contactos) => 
+    fetch(`${API_URL}/contactos/import`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ contactos })
     }).then(res => res.json()),
 
   // Llamadas

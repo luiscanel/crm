@@ -4,6 +4,48 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Validation helpers
+const validStates = ['nuevo', 'contactado', 'interesado', 'cita_agendada', 'seguimiento', 'cerrado'];
+const validSizes = ['Micro', 'Pequeña', 'Mediana', 'Grande', 'Corporación'];
+
+function validateEmail(email) {
+  if (!email) return true; // Optional field
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+function validatePhone(phone) {
+  if (!phone) return true; // Optional
+  // Allow: +5021234567, 5021234567, 12345678, +1-555-555-5555
+  const phoneRegex = /^[\d\s\-\+\(\)]{7,20}$/;
+  return phoneRegex.test(phone);
+}
+
+function validateEmpresa(data, isUpdate = false) {
+  const errors = [];
+  
+  if (!data.nombre || data.nombre.trim().length < 2) {
+    errors.push('El nombre debe tener al menos 2 caracteres');
+  }
+  if (data.nombre && data.nombre.length > 200) {
+    errors.push('El nombre no puede exceder 200 caracteres');
+  }
+  if (data.email && !validateEmail(data.email)) {
+    errors.push('Email inválido');
+  }
+  if (data.telefono && !validatePhone(data.telefono)) {
+    errors.push('Teléfono inválido');
+  }
+  if (data.estado && !validStates.includes(data.estado)) {
+    errors.push('Estado inválido');
+  }
+  if (data.tamano && !validSizes.includes(data.tamano)) {
+    errors.push('Tamaño inválido');
+  }
+  
+  return errors;
+}
+
 // Get all empresas (with optional filters)
 router.get('/', authenticateToken, (req, res) => {
   try {
@@ -118,10 +160,16 @@ router.get('/:id', authenticateToken, (req, res) => {
 router.post('/', authenticateToken, (req, res) => {
   try {
     const db = req.db;
-    const { nombre, industria, tamano, ubicacion, telefono, vendedor_id } = req.body;
+    const { nombre, industria, tamano, ubicacion, telefono, email, vendedor_id } = req.body;
 
+    // Validate input
     if (!nombre) {
       return res.status(400).json({ error: 'Nombre de empresa requerido' });
+    }
+
+    const validationErrors = validateEmpresa({ nombre, industria, tamano, ubicacion, telefono, email });
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ errors: validationErrors });
     }
 
     const id = uuidv4();
@@ -149,11 +197,17 @@ router.post('/', authenticateToken, (req, res) => {
 router.put('/:id', authenticateToken, (req, res) => {
   try {
     const db = req.db;
-    const { nombre, industria, tamano, ubicacion, telefono, estado, vendedor_id, fecha_cita, tipo_cita, notas_cita, fecha_seguimiento } = req.body;
+    const { nombre, industria, tamano, ubicacion, telefono, email, estado, vendedor_id, fecha_cita, tipo_cita, notas_cita, fecha_seguimiento } = req.body;
 
     const existing = db.get('SELECT * FROM empresas WHERE id = ?', [req.params.id]);
     if (!existing) {
       return res.status(404).json({ error: 'Empresa no encontrada' });
+    }
+
+    // Validate input
+    const validationErrors = validateEmpresa({ nombre, industria, tamano, ubicacion, telefono, email, estado }, true);
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ errors: validationErrors });
     }
 
     // Check if changing to cita_agendada
@@ -295,6 +349,111 @@ router.get('/stats/summary', authenticateToken, (req, res) => {
   } catch (error) {
     console.error('Get stats error:', error);
     res.status(500).json({ error: 'Error al obtener estadísticas' });
+  }
+});
+
+// Export empresas to CSV
+router.get('/export', authenticateToken, (req, res) => {
+  try {
+    const db = req.db;
+    
+    let query = `SELECT e.*, u.name as vendedor_nombre FROM empresas e LEFT JOIN users u ON e.vendedor_id = u.id WHERE 1=1`;
+    const params = [];
+
+    if (req.user.role === 'vendedor') {
+      query += ' AND e.vendedor_id = ?';
+      params.push(req.user.id);
+    }
+
+    const empresas = db.all(query, params);
+
+    // Build CSV
+    const headers = ['nombre', 'industria', 'tamano', 'ubicacion', 'telefono', 'email', 'estado', 'vendedor_nombre', 'notas', 'fecha_seguimiento', 'created_at'];
+    const csvRows = [headers.join(',')];
+
+    for (const emp of empresas) {
+      const row = headers.map(h => {
+        const val = emp[h] || '';
+        // Escape quotes and wrap in quotes if contains comma or quote
+        const escaped = String(val).replace(/"/g, '""');
+        return escaped.includes(',') || escaped.includes('"') ? `"${escaped}"` : escaped;
+      });
+      csvRows.push(row.join(','));
+    }
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=empresas_${new Date().toISOString().split('T')[0]}.csv`);
+    res.send(csvRows.join('\n'));
+  } catch (error) {
+    console.error('Export empresas error:', error);
+    res.status(500).json({ error: 'Error al exportar empresas' });
+  }
+});
+
+// Import empresas from CSV
+router.post('/import', authenticateToken, (req, res) => {
+  try {
+    const db = req.db;
+    const { empresas } = req.body;
+
+    if (!Array.isArray(empresas) || empresas.length === 0) {
+      return res.status(400).json({ error: 'Array de empresas requerido' });
+    }
+
+    // Limit to prevent abuse
+    if (empresas.length > 500) {
+      return res.status(400).json({ error: 'Máximo 500 empresas por importación' });
+    }
+
+    const inserted = [];
+    const errors = [];
+
+    for (let i = 0; i < empresas.length; i++) {
+      const emp = empresas[i];
+      
+      // Validate before inserting
+      const validationErrors = validateEmpresa(emp);
+      if (validationErrors.length > 0) {
+        errors.push({ row: i + 1, errors: validationErrors });
+        continue;
+      }
+
+      if (!emp.nombre) {
+        errors.push({ row: i + 1, error: 'Nombre requerido' });
+        continue;
+      }
+
+      try {
+        const id = uuidv4();
+        const assignedVendedor = req.user.role === 'vendedor' ? req.user.id : (emp.vendedor_id || req.user.id);
+
+        db.run(
+          `INSERT INTO empresas (id, nombre, industria, tamano, ubicacion, telefono, email, estado, vendedor_id, notas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [id, emp.nombre, emp.industria || '', emp.tamano || '', emp.ubicacion || '', emp.telefono || '', emp.email || '', emp.estado || 'nuevo', assignedVendedor, emp.notas || '']
+        );
+
+        inserted.push({ nombre: emp.nombre, id });
+      } catch (err) {
+        errors.push({ row: i + 1, error: err.message });
+      }
+    }
+
+    // Log activity
+    if (inserted.length > 0) {
+      db.run(
+        `INSERT INTO activity_log (id, user_id, action, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?, ?)`,
+        [uuidv4(), req.user.id, 'import_empresas', 'empresa', null, `Importadas ${inserted.length} empresas`]
+      );
+    }
+
+    res.json({ 
+      message: `Importadas ${inserted.length} empresas`,
+      inserted,
+      errors: errors.length > 0 ? errors : null
+    });
+  } catch (error) {
+    console.error('Import empresas error:', error);
+    res.status(500).json({ error: 'Error al importar empresas' });
   }
 });
 

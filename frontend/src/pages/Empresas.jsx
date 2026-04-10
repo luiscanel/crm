@@ -3,7 +3,7 @@ import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { 
   Plus, Search, Edit, Trash2, Eye, Building2, 
-  MapPin, Users, Phone, Mail, MessageCircle, Download
+  MapPin, Users, Phone, Mail, MessageCircle, Download, Upload
 } from 'lucide-react';
 
 const estados = [
@@ -164,26 +164,84 @@ export default function Empresas() {
     ) : null;
   };
 
-  // Export to CSV
-  const exportToCSV = () => {
-    const headers = ['Nombre', 'Industria', 'Tamaño', 'Ubicación', 'Estado', 'Teléfono', 'Vendedor', 'Fecha Creación'];
-    const rows = empresas.map(e => [
-      e.nombre,
-      e.industria || '',
-      e.tamano || '',
-      e.ubicacion || '',
-      e.estado,
-      e.telefono || '',
-      e.vendedor_nombre || '',
-      new Date(e.created_at).toLocaleDateString('es-GT')
-    ]);
-    
-    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `empresas_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
+  // Export to CSV from backend
+  const exportToCSV = async () => {
+    try {
+      const blob = await api.exportEmpresas();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `empresas_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting:', error);
+      alert('Error al exportar');
+    }
+  };
+
+  // Import from CSV
+  const handleImport = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const text = event.target.result;
+        const lines = text.split('\n');
+        if (lines.length < 2) {
+          alert('Archivo vacío o sin datos');
+          return;
+        }
+        
+        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        const empresas = [];
+        
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue;
+          
+          // Simple CSV parse (handle quoted fields)
+          const values = [];
+          let current = '';
+          let inQuotes = false;
+          for (const char of lines[i]) {
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              values.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          values.push(current.trim());
+          
+          const empresa = {};
+          headers.forEach((h, idx) => {
+            empresa[h.toLowerCase()] = values[idx] || '';
+          });
+          
+          if (empresa.nombre) {
+            empresas.push(empresa);
+          }
+        }
+
+        const result = await api.importEmpresas(empresas);
+        if (result.inserted) {
+          alert(`Importadas ${result.inserted.length} empresas`);
+          loadEmpresas();
+        }
+        if (result.errors) {
+          alert(`Errores: ${JSON.stringify(result.errors)}`);
+        }
+      } catch (error) {
+        console.error('Error importing:', error);
+        alert('Error al importar');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // Reset input
   };
 
   return (
@@ -206,8 +264,18 @@ export default function Empresas() {
           className="btn btn-outline flex items-center gap-2"
         >
           <Download size={20} />
-          Exportar CSV
+          Exportar
         </button>
+        <label className="btn btn-outline flex items-center gap-2 cursor-pointer">
+          <Upload size={20} />
+          Importar
+          <input
+            type="file"
+            accept=".csv"
+            onChange={handleImport}
+            className="hidden"
+          />
+        </label>
       </div>
 
       {/* Filters */}
