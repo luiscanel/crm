@@ -285,7 +285,8 @@ export default function Gamificacion() {
                 </p>
               )}
             </div>
-          ))}
+          );
+        })}
         </div>
       </div>
 
