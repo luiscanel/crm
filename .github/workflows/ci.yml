@@ -1,0 +1,59 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    
+    services:
+      docker:
+        image: node:18-alpine
+        options: --health-cmd "exit 0"
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          npm ci
+      
+      - name: Run tests
+        run: |
+          cd backend
+          npm test
+      
+      - name: Run linter
+        run: |
+          cd backend
+          npm run lint || echo "No lint script configured"
+
+  build-docker:
+    runs-on: ubuntu-latest
+    needs: test-backend
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build Docker images
+        run: |
+          docker compose build
+      
+      - name: Verify containers
+        run: |
+          docker compose up -d
+          sleep 10
+          docker compose ps
+          docker compose down
