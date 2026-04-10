@@ -46,6 +46,7 @@ async function startServer() {
     const gamificacionRoutes = require('./routes/gamificacion');
     const dashboardRoutes = require('./routes/dashboard');
     const notasRoutes = require('./routes/notas');
+    const plantillasRoutes = require('./routes/plantillas');
 
     // API Routes
     app.use('/api/auth', authRoutes);
@@ -56,6 +57,7 @@ async function startServer() {
     app.use('/api/gamificacion', gamificacionRoutes);
     app.use('/api/dashboard', dashboardRoutes);
     app.use('/api/notas', notasRoutes);
+    app.use('/api/plantillas', plantillasRoutes);
 
     // Health check
     app.get('/api/health', (req, res) => {

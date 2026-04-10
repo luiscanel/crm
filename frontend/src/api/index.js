@@ -315,5 +315,15 @@ export const api = {
 
   // Dashboard conversion data
   getConversionData: () => 
-    fetch(`${API_URL}/dashboard/conversion`, { headers: headers() }).then(res => res.json())
+    fetch(`${API_URL}/dashboard/conversion`, { headers: headers() }).then(res => res.json()),
+
+  // Plantillas de mensajes
+  getPlantillas: () => 
+    fetch(`${API_URL}/plantillas`, { headers: headers() }).then(res => res.json()),
+
+  getPlantilla: (id) => 
+    fetch(`${API_URL}/plantillas/${id}`, { headers: headers() }).then(res => res.json()),
+
+  getPlantillasByCanal: (canal) => 
+    fetch(`${API_URL}/plantillas/canal/${canal}`, { headers: headers() }).then(res => res.json())
 };
