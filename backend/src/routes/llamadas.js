@@ -246,8 +246,12 @@ router.delete('/:id', authenticateToken, (req, res) => {
     // Delete the call
     db.run('DELETE FROM llamadas WHERE id = ?', [id]);
     
-    // Reverse the puntos (only if user still has them)
-    db.run('UPDATE users SET puntos = puntos - ? WHERE id = ?', [puntosAActualizar, llamada.vendedor_id]);
+    // Reverse the puntos (only if user still has them, don't go below 0)
+    const usuario = db.get('SELECT puntos FROM users WHERE id = ?', [llamada.vendedor_id]);
+    const puntosReales = Math.min(puntosAActualizar, usuario.puntos);
+    if (puntosReales > 0) {
+      db.run('UPDATE users SET puntos = puntos - ? WHERE id = ?', [puntosReales, llamada.vendedor_id]);
+    }
     
     // Log activity
     const { v4: uuidv4 } = require('uuid');

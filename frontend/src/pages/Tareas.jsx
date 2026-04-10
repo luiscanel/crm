@@ -24,7 +24,7 @@ export default function Tareas() {
   const loadTareas = async () => {
     try {
       const data = await api.getMisTareas();
-      setTareas(data);
+      setTareas(data.data || data);
     } catch (e) {
       console.error(e);
     } finally {
@@ -34,8 +34,8 @@ export default function Tareas() {
 
   const loadEmpresas = async () => {
     try {
-      const data = await api.getEmpresas();
-      setEmpresas(data);
+      const response = await api.getEmpresas();
+      setEmpresas(response.data || response);
     } catch (e) {
       console.error(e);
     }
@@ -44,7 +44,12 @@ export default function Tareas() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.createTarea(form);
+      const dataToSend = {
+        ...form,
+        fecha_limite: form.fecha_vencimiento
+      };
+      delete dataToSend.fecha_vencimiento;
+      await api.createTarea(dataToSend);
       setShowNewModal(false);
       setForm({
         empresa_id: '',

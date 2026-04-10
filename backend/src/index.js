@@ -67,6 +67,7 @@ async function startServer() {
     const dashboardRoutes = require('./routes/dashboard');
     const notasRoutes = require('./routes/notas');
     const plantillasRoutes = require('./routes/plantillas');
+    const tareasRoutes = require('./routes/tareas');
 
     // API Routes
     app.use('/api/auth', authRoutes);
@@ -78,6 +79,7 @@ async function startServer() {
     app.use('/api/dashboard', dashboardRoutes);
     app.use('/api/notas', notasRoutes);
     app.use('/api/plantillas', plantillasRoutes);
+    app.use('/api/tareas', tareasRoutes);
 
     // Health check
     app.get('/api/health', (req, res) => {

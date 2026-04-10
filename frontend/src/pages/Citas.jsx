@@ -38,7 +38,7 @@ export default function Citas() {
   const loadData = async () => {
     try {
       // Backend filters empresas by vendedor automatically
-      const [citasData, empresasData] = await Promise.all([
+      const [citasData, empresasResponse] = await Promise.all([
         api.getCitas({ estado: filterEstado }),
         api.getEmpresas()
       ]);
@@ -50,7 +50,7 @@ export default function Citas() {
       }
       
       setCitas(filteredCitas);
-      setEmpresas(empresasData);
+      setEmpresas(empresasResponse.data || empresasResponse);
     } catch (error) {
       console.error('Error:', error);
     } finally {

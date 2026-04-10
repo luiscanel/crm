@@ -184,8 +184,12 @@ router.delete('/:id', authenticateToken, (req, res) => {
       return res.status(404).json({ error: 'Cita no encontrada' });
     }
 
-    // Reverse 10 puntos that were awarded when cita was created
-    db.run('UPDATE users SET puntos = puntos - 10 WHERE id = ?', [existing.vendedor_id]);
+    // Reverse 10 puntos that were awarded when cita was created (don't go below 0)
+    const usuario = db.get('SELECT puntos FROM users WHERE id = ?', [existing.vendedor_id]);
+    const puntosReales = Math.min(10, usuario.puntos);
+    if (puntosReales > 0) {
+      db.run('UPDATE users SET puntos = puntos - ? WHERE id = ?', [puntosReales, existing.vendedor_id]);
+    }
     
     // Log activity
     const { v4: uuidv4 } = require('uuid');

@@ -29,8 +29,8 @@ export default function Kanban() {
 
   const loadEmpresas = async () => {
     try {
-      const data = await api.getEmpresas();
-      setEmpresas(data);
+      const response = await api.getEmpresas();
+      setEmpresas(response.data || response);
     } catch (error) {
       console.error('Error:', error);
     } finally {

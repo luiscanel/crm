@@ -288,10 +288,10 @@ export const api = {
 
   // Tareas
   getMisTareas: () =>
-    fetch(`${API_URL}/mis-tareas`, { headers: headers() }).then(res => res.json()),
+    fetch(`${API_URL}/tareas/mis-tareas`, { headers: headers() }).then(res => res.json()),
 
   getTareasEmpresa: (empresa_id) =>
-    fetch(`${API_URL}/empresa/${empresa_id}/tareas`, { headers: headers() }).then(res => res.json()),
+    fetch(`${API_URL}/tareas/empresa/${empresa_id}`, { headers: headers() }).then(res => res.json()),
 
   createTarea: (data) =>
     fetch(`${API_URL}/tareas`, {

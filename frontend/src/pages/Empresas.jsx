@@ -60,13 +60,14 @@ export default function Empresas() {
 
   const loadEmpresas = async () => {
     try {
-      const data = await api.getEmpresas({ 
+      const response = await api.getEmpresas({ 
         search, 
         estado: filterEstado,
         fecha_desde: filterFechaDesde,
         fecha_hasta: filterFechaHasta
       });
-      setEmpresas(data);
+      // Handle both paginated and non-paginated responses
+      setEmpresas(response.data || response);
     } catch (error) {
       console.error('Error:', error);
     } finally {

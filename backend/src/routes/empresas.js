@@ -323,12 +323,23 @@ router.delete('/:id', authenticateToken, (req, res) => {
       puntosARevertir += 10;
     }
     
-    // Delete empresa (this will cascade to llamadas)
+    // Delete related records in correct order (manual cascade since SQLite needs it)
+    db.run('DELETE FROM llamadas WHERE empresa_id = ?', [req.params.id]);
+    db.run('DELETE FROM contactos WHERE empresa_id = ?', [req.params.id]);
+    db.run('DELETE FROM citas WHERE empresa_id = ?', [req.params.id]);
+    db.run('DELETE FROM notas WHERE empresa_id = ?', [req.params.id]);
+    db.run('DELETE FROM tareas WHERE empresa_id = ?', [req.params.id]);
+    
+    // Delete empresa
     db.run('DELETE FROM empresas WHERE id = ?', [req.params.id]);
     
-    // Reverse puntos if any were awarded
+    // Reverse puntos if any were awarded (don't go below 0)
     if (puntosARevertir > 0) {
-      db.run('UPDATE users SET puntos = puntos - ? WHERE id = ?', [puntosARevertir, existing.vendedor_id]);
+      const usuario = db.get('SELECT puntos FROM users WHERE id = ?', [existing.vendedor_id]);
+      const puntosReales = Math.min(puntosARevertir, usuario.puntos);
+      if (puntosReales > 0) {
+        db.run('UPDATE users SET puntos = puntos - ? WHERE id = ?', [puntosReales, existing.vendedor_id]);
+      }
     }
 
     // Log activity
