@@ -7,29 +7,60 @@ const router = express.Router();
 router.get('/general', authenticateToken, (req, res) => {
   try {
     const db = req.db;
-    const today = new Date().toISOString().split('T')[0];
     const startOfWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
     
-    // Total empresas
-    const totalEmpresas = db.get('SELECT COUNT(*) as count FROM empresas');
+    // Filtro por vendedor si no es admin/supervisor
+    let whereEmpresas = '';
+    let paramsEmpresas = [];
+    let whereLlamadas = '';
+    let paramsLlamadas = [];
+    let whereCitas = '';
+    let paramsCitas = [];
     
-    // Llamadas today/week/month (SQLite compatible)
-    const llamadasHoy = db.get("SELECT COUNT(*) as count FROM llamadas WHERE date(fecha_llamada) = date('now')");
-    const llamadasSemana = db.get('SELECT COUNT(*) as count FROM llamadas WHERE fecha_llamada >= ?', [startOfWeek + ' 00:00:00']);
-    const llamadasMes = db.get('SELECT COUNT(*) as count FROM llamadas WHERE fecha_llamada >= ?', [startOfMonth + ' 00:00:00']);
+    if (req.user.role === 'vendedor') {
+      whereEmpresas = 'WHERE vendedor_id = ?';
+      paramsEmpresas = [req.user.id];
+      whereLlamadas = 'WHERE vendedor_id = ?';
+      paramsLlamadas = [req.user.id];
+      whereCitas = 'WHERE vendedor_id = ?';
+      paramsCitas = [req.user.id];
+    }
+    
+    // Total empresas
+    const totalEmpresas = db.get(`SELECT COUNT(*) as count FROM empresas ${whereEmpresas}`, paramsEmpresas);
+    
+    // Llamadas today/week/month
+    const llamadasHoy = db.get(`SELECT COUNT(*) as count FROM llamadas ${whereLlamadas} AND date(fecha_llamada) = date('now')`, paramsLlamadas);
+    const llamadasSemana = db.get(`SELECT COUNT(*) as count FROM llamadas ${whereLlamadas} AND fecha_llamada >= ?`, paramsLlamadas.concat([startOfWeek + ' 00:00:00']));
+    const llamadasMes = db.get(`SELECT COUNT(*) as count FROM llamadas ${whereLlamadas} AND fecha_llamada >= ?`, paramsLlamadas.concat([startOfMonth + ' 00:00:00']));
     
     // Empresas contactadas hoy (unique)
-    const empresasContactadasHoy = db.get("SELECT COUNT(DISTINCT empresa_id) as count FROM llamadas WHERE date(fecha_llamada) = date('now')");
+    let empresasContactadasHoy;
+    if (req.user.role === 'vendedor') {
+      empresasContactadasHoy = db.get("SELECT COUNT(DISTINCT empresa_id) as count FROM llamadas WHERE vendedor_id = ? AND date(fecha_llamada) = date('now')", [req.user.id]);
+    } else {
+      empresasContactadasHoy = db.get("SELECT COUNT(DISTINCT empresa_id) as count FROM llamadas WHERE date(fecha_llamada) = date('now')");
+    }
     
-    // Leads interesados (SQLite compatible - no IN () with strings)
-    const leadsInteresados = db.get("SELECT COUNT(*) as count FROM empresas WHERE estado = 'interesado' OR estado = 'cita_agendada'");
+    // Leads interesados
+    let leadsInteresados;
+    if (req.user.role === 'vendedor') {
+      leadsInteresados = db.get("SELECT COUNT(*) as count FROM empresas WHERE vendedor_id = ? AND (estado = 'interesado' OR estado = 'cita_agendada')", [req.user.id]);
+    } else {
+      leadsInteresados = db.get("SELECT COUNT(*) as count FROM empresas WHERE estado = 'interesado' OR estado = 'cita_agendada'");
+    }
     
-    // Citas agendadas (pendientes)
-    const citasPendientes = db.get("SELECT COUNT(*) as count FROM citas WHERE estado = 'pendiente'");
-    
-    // Citas realizadas este mes
-    const citasMes = db.get("SELECT COUNT(*) as count FROM citas WHERE estado = 'realizada' AND date(fecha_hora) >= ?", [startOfMonth]);
+    // Citas
+    let citasPendientes;
+    let citasMes;
+    if (req.user.role === 'vendedor') {
+      citasPendientes = db.get("SELECT COUNT(*) as count FROM citas WHERE vendedor_id = ? AND estado = 'pendiente'", [req.user.id]);
+      citasMes = db.get("SELECT COUNT(*) as count FROM citas WHERE vendedor_id = ? AND estado = 'realizada' AND date(fecha_hora) >= ?", [req.user.id, startOfMonth]);
+    } else {
+      citasPendientes = db.get("SELECT COUNT(*) as count FROM citas WHERE estado = 'pendiente'");
+      citasMes = db.get("SELECT COUNT(*) as count FROM citas WHERE estado = 'realizada' AND date(fecha_hora) >= ?", [startOfMonth]);
+    }
     
     // Get weekly goal from retos table
     const metaSemanal = db.get("SELECT meta FROM retos WHERE tipo = 'semanal' AND activo = 1 ORDER BY created_at DESC LIMIT 1");
