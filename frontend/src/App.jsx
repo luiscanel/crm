@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import DashboardAdmin from './pages/DashboardAdmin';
 import Empresas from './pages/Empresas';
+import Kanban from './pages/Kanban';
 import Llamadas from './pages/Llamadas';
 import Citas from './pages/Citas';
 import Tareas from './pages/Tareas';
@@ -93,6 +94,7 @@ function AppRoutes() {
         >
           <Route index element={dashboardComponent} />
           <Route path="empresas" element={<Empresas />} />
+          <Route path="kanban" element={<Kanban />} />
           <Route path="llamadas" element={<Llamadas />} />
           <Route path="citas" element={<Citas />} />
           <Route path="tareas" element={<Tareas />} />
@@ -111,6 +113,7 @@ function AppRoutes() {
         >
           <Route index element={<DashboardAdmin />} />
           <Route path="empresas" element={<Empresas />} />
+          <Route path="kanban" element={<Kanban />} />
           <Route path="llamadas" element={<Llamadas />} />
           <Route path="citas" element={<Citas />} />
           <Route path="tareas" element={<Tareas />} />
