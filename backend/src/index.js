@@ -7,6 +7,7 @@ const path = require('path');
 const { initDatabase } = require('./models/database');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { logger, requestTimer } = require('./utils/logger');
+const { swaggerUi, specs } = require('./utils/swagger');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -82,6 +83,13 @@ async function startServer() {
     app.get('/api/health', (req, res) => {
       res.json({ success: true, message: 'Teknao CRM API running', timestamp: new Date().toISOString() });
     });
+
+    // Swagger documentation
+    app.use('/api/docs', swaggerUi.serve);
+    app.get('/api/docs', swaggerUi.setup(specs, {
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'Teknao CRM API Docs'
+    }));
 
     // Serve static files in production
     if (process.env.NODE_ENV === 'production') {

@@ -234,6 +234,34 @@ function initDatabase() {
     console.log('✅ Default admin user created');
   }
 
+  // Create indexes for better performance
+  const indexes = [
+    'CREATE INDEX IF NOT EXISTS idx_empresas_vendedor ON empresas(vendedor_id)',
+    'CREATE INDEX IF NOT EXISTS idx_empresas_estado ON empresas(estado)',
+    'CREATE INDEX IF NOT EXISTS idx_empresas_created ON empresas(created_at)',
+    'CREATE INDEX IF NOT EXISTS idx_llamadas_empresa ON llamadas(empresa_id)',
+    'CREATE INDEX IF NOT EXISTS idx_llamadas_vendedor ON llamadas(vendedor_id)',
+    'CREATE INDEX IF NOT EXISTS idx_llamadas_fecha ON llamadas(fecha_llamada)',
+    'CREATE INDEX IF NOT EXISTS idx_citas_empresa ON citas(empresa_id)',
+    'CREATE INDEX IF NOT EXISTS idx_citas_vendedor ON citas(vendedor_id)',
+    'CREATE INDEX IF NOT EXISTS idx_citas_fecha ON citas(fecha_hora)',
+    'CREATE INDEX IF NOT EXISTS idx_contactos_empresa ON contactos(empresa_id)',
+    'CREATE INDEX IF NOT EXISTS idx_activity_user ON activity_log(user_id)',
+    'CREATE INDEX IF NOT EXISTS idx_activity_created ON activity_log(created_at)',
+    'CREATE INDEX IF NOT EXISTS idx_notas_empresa ON notas(empresa_id)',
+    'CREATE INDEX IF NOT EXISTS idx_tareas_vendedor ON tareas(vendedor_id)',
+    'CREATE INDEX IF NOT EXISTS idx_tareas_estado ON tareas(estado)',
+  ];
+
+  for (const idx of indexes) {
+    try {
+      db.exec(idx);
+    } catch (e) {
+      // Ignore if index already exists
+    }
+  }
+  console.log('✅ Database indexes created');
+
   // Insert default badges if not exists
   const existingBadges = db.prepare('SELECT COUNT(*) as count FROM badges').get();
   if (existingBadges.count === 0) {

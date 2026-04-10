@@ -50,50 +50,75 @@ function validateEmpresa(data, isUpdate = false) {
 router.get('/', authenticateToken, (req, res) => {
   try {
     const db = req.db;
-    const { estado, vendedor_id, search, fecha_desde, fecha_hasta } = req.query;
+    const { estado, vendedor_id, search, fecha_desde, fecha_hasta, page = 1, limit = 20 } = req.query;
     
-    let query = `
-      SELECT e.*, 
-        (SELECT COUNT(*) FROM llamadas WHERE empresa_id = e.id) as total_llamadas,
-        (SELECT COUNT(*) FROM llamadas WHERE empresa_id = e.id AND fecha_llamada::date = CURRENT_DATE) as llamadas_hoy
-      FROM empresas e
-      WHERE 1=1
-    `;
+    const pageNum = parseInt(page) || 1;
+    const limitNum = Math.min(parseInt(limit) || 20, 100);
+    const offset = (pageNum - 1) * limitNum;
+    
+    // Base WHERE clause
+    let whereClause = 'WHERE 1=1';
     const params = [];
 
     if (req.user.role === 'vendedor') {
-      query += ' AND e.vendedor_id = ?';
+      whereClause += ' AND e.vendedor_id = ?';
       params.push(req.user.id);
     } else if (vendedor_id) {
-      query += ' AND e.vendedor_id = ?';
+      whereClause += ' AND e.vendedor_id = ?';
       params.push(vendedor_id);
     }
 
     if (estado) {
-      query += ' AND e.estado = ?';
+      whereClause += ' AND e.estado = ?';
       params.push(estado);
     }
 
     if (search) {
-      query += ' AND (e.nombre LIKE ? OR e.industria LIKE ? OR e.ubicacion LIKE ?)';
+      whereClause += ' AND (e.nombre LIKE ? OR e.industria LIKE ? OR e.ubicacion LIKE ?)';
       const searchTerm = `%${search}%`;
       params.push(searchTerm, searchTerm, searchTerm);
     }
 
     if (fecha_desde) {
-      query += ' AND DATE(e.created_at) >= ?';
+      whereClause += ' AND DATE(e.created_at) >= ?';
       params.push(fecha_desde);
     }
 
     if (fecha_hasta) {
-      query += ' AND DATE(e.created_at) <= ?';
+      whereClause += ' AND DATE(e.created_at) <= ?';
       params.push(fecha_hasta);
     }
 
-    query += ' ORDER BY e.created_at DESC';
+    // Get total count
+    const countQuery = `SELECT COUNT(*) as total FROM empresas e ${whereClause}`;
+    const totalResult = db.get(countQuery, params);
+    const total = totalResult.total;
+
+    // Get paginated results
+    let query = `
+      SELECT e.*, 
+        (SELECT COUNT(*) FROM llamadas WHERE empresa_id = e.id) as total_llamadas,
+        (SELECT COUNT(*) FROM llamadas WHERE empresa_id = e.id AND fecha_llamada::date = CURRENT_DATE) as llamadas_hoy
+      FROM empresas e
+      ${whereClause}
+      ORDER BY e.created_at DESC
+      LIMIT ? OFFSET ?
+    `;
+    params.push(limitNum, offset);
 
     const empresas = db.all(query, params);
-    res.json(empresas);
+    
+    res.json({
+      data: empresas,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+        hasNext: pageNum * limitNum < total,
+        hasPrev: pageNum > 1
+      }
+    });
   } catch (error) {
     console.error('Get empresas error:', error);
     res.status(500).json({ error: 'Error al obtener empresas' });
