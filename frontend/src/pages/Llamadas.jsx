@@ -62,9 +62,12 @@ export default function Llamadas() {
         api.getEmpresas(),
         api.getLlamadasDaily()
       ]);
-      setLlamadas(llamadasData);
-      setEmpresas(empresasData);
-      setDailyStats(dailyData);
+      // Handle both array responses and wrapped responses {data: [...], pagination: {...}}
+      const llamadas = Array.isArray(llamadasData) ? llamadasData : (llamadasData.data || []);
+      const empresas = Array.isArray(empresasData) ? empresasData : (empresasData.data || []);
+      setLlamadas(llamadas);
+      setEmpresas(empresas);
+      setDailyStats(dailyData && !dailyData.error ? dailyData : null);
     } catch (error) {
       console.error('Error:', error);
     } finally {
