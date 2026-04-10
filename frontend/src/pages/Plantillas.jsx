@@ -27,6 +27,7 @@ export default function Plantillas() {
   const [empresaNombre, setEmpresaNombre] = useState('');
   const [contactoNombre, setContactoNombre] = useState('');
   const [vendedorNombre, setVendedorNombre] = useState(user?.nombre || '');
+  const [industria, setIndustria] = useState('');
   const [fecha, setFecha] = useState('');
   const [hora, setHora] = useState('');
   const [tipoReunion, setTipoReunion] = useState('videollamada');
@@ -68,10 +69,11 @@ export default function Plantillas() {
       .replace(/\[NOMBRE\]/g, contactoNombre || '[NOMBRE]')
       .replace(/\[EMPRESA\]/g, empresaNombre || '[EMPRESA]')
       .replace(/\[VENDEDOR\]/g, vendedorNombre || '[VENDEDOR]')
+      .replace(/\[INDUSTRIA\]/g, industria || '[INDUSTRIA]')
       .replace(/\[FECHA\]/g, fecha || '[FECHA]')
       .replace(/\[HORA\]/g, hora || '[HORA]')
       .replace(/\[VIDEO\]/g, tipoReunion === 'videollamada' ? 'videollamada' : 'llamada')
-      .replace(/\[BENEFICIO\]/g, 'mejorar sus procesos de ventas');
+      .replace(/\[BENEFICIO\]/g, 'optimizar su infraestructura tecnológica');
   };
 
   const copyToClipboard = async (texto) => {
@@ -149,7 +151,7 @@ export default function Plantillas() {
           <User size={16} className="text-blue-600" />
           Datos para personalizar mensajes
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           <div>
             <label className="text-xs text-gray-600">Contacto</label>
             <input
@@ -177,6 +179,16 @@ export default function Plantillas() {
               placeholder="Tu nombre"
               value={vendedorNombre}
               onChange={(e) => setVendedorNombre(e.target.value)}
+              className="input text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-600">Industria</label>
+            <input
+              type="text"
+              placeholder="Ej: Retail, Salud, Finanzas"
+              value={industria}
+              onChange={(e) => setIndustria(e.target.value)}
               className="input text-sm"
             />
           </div>

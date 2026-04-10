@@ -40,14 +40,19 @@ Nuestra reunión será vía [VIDEO/LLAMADA/PRESENCIAL].
     id: 'cold_calling',
     nombre: 'Cold Calling - Primer Contacto',
     canal: 'telefono',
-    texto: `Buenos días/tardes, soy [VENDEDOR] de Teknao.
+    texto: `Buenos días/tardes, me comunico con [NOMBRE] de [EMPRESA]?
 
-Le llamo porque trabajamos con empresas como la suya ofreciendo soluciones de IT (infraestructura, ciberseguridad, cloud, etc.).
+Soy [VENDEDOR] de Teknao, empresa especializada en soluciones de IT.
 
-¿Tiene 2 minutos para comentarle de qué se trata?
+Le llamo porque hemos ayudado a empresas del sector [INDUSTRIA] a optimizar su infraestructura tecnológica, mejorar su ciberseguridad y reducir costos de cloud.
+
+¿Tiene 2 minutos para comentarle cómo podemos ayudarle?
 
 [SI ACEPTA: Le explico brevemente...]
-[SI RECHAZA: Perfecto, le agradezco su tiempo. Que tenga un buen día.]`
+
+[SI INTERESADO: Podemos agendar una reunión para mostrarle un diagnóstico gratuito de su infraestructura?]
+
+[SI RECHAZA: Perfecto, le agradezco su tiempo. Le envío un correo con información por si le interesa en el futuro. Que tenga un buen día.]`
   },
   {
     id: 'interesado',
