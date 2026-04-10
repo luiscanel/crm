@@ -329,6 +329,10 @@ export const api = {
   getConversionData: () => 
     fetch(`${API_URL}/dashboard/conversion`, { headers: headers() }).then(res => res.json()),
 
+  // Empresas que requieren seguimiento
+  getSeguimiento: () => 
+    fetch(`${API_URL}/dashboard/seguimiento`, { headers: headers() }).then(res => res.json()),
+
   // Plantillas de mensajes
   getPlantillas: () => 
     fetch(`${API_URL}/plantillas`, { headers: headers() }).then(res => res.json()),

@@ -549,7 +549,39 @@ router.get('/conversion', authenticateToken, (req, res) => {
     });
   } catch (error) {
     console.error('Get conversion error:', error);
-    res.status(500).json({ error: 'Error al obtener conversión' });
+    res.status(500).json({ error: 'Error al obtener conversion' });
+  }
+});
+
+// Get empresas que requieren seguimiento
+router.get('/seguimiento', authenticateToken, (req, res) => {
+  try {
+    const db = req.db;
+    const today = new Date().toISOString().split('T')[0];
+    
+    let query = `
+      SELECT e.*, u.name as vendedor_nombre
+      FROM empresas e
+      LEFT JOIN users u ON e.vendedor_id = u.id
+      WHERE e.fecha_seguimiento IS NOT NULL 
+        AND e.fecha_seguimiento <= ?
+        AND e.estado NOT IN ('cerrado', 'cita_agendada')
+    `;
+    let params = [today];
+    
+    if (req.user.role === 'vendedor') {
+      query += ' AND e.vendedor_id = ?';
+      params.push(req.user.id);
+    }
+    
+    query += ' ORDER BY e.fecha_seguimiento ASC';
+    
+    const empresas = db.all(query, params);
+    
+    res.json(empresas);
+  } catch (error) {
+    console.error('Get seguimiento error:', error);
+    res.status(500).json({ error: 'Error al obtener empresas en seguimiento' });
   }
 });
 

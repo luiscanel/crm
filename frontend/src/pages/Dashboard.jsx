@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   Phone, Building2, Users, Calendar, Trophy, TrendingUp,
   Target, Clock, Star, ArrowUp, ArrowDown, Flame, Award,
-  Zap, Sparkles, MessageSquare
+  Zap, Sparkles, MessageSquare, AlertCircle
 } from 'lucide-react';
 
 // Frases motivacionales
@@ -37,6 +37,7 @@ export default function Dashboard() {
   const [fraseDelDia, setFraseDelDia] = useState('');
   const [citasProximas, setCitasProximas] = useState([]);
   const [chartDays, setChartDays] = useState(7);
+  const [seguimientoEmpresas, setSeguimientoEmpresas] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -51,18 +52,20 @@ export default function Dashboard() {
 
   const loadData = async () => {
     try {
-      const [general, daily, gamStats, citas, convData] = await Promise.all([
+      const [general, daily, gamStats, citas, convData, seguimiento] = await Promise.all([
         api.getDashboardGeneral(),
         api.getLlamadasDaily(),
         api.getDashboardStats(),
         api.getCitasUpcoming(),
-        api.getConversionData()
+        api.getConversionData(),
+        api.getSeguimiento()
       ]);
       setGeneralStats(general);
       setDailyStats(daily);
       setGamificacionStats(gamStats);
       setCitasProximas(citas || []);
       setConversionData(convData);
+      setSeguimientoEmpresas(seguimiento || []);
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
@@ -485,6 +488,39 @@ export default function Dashboard() {
                   'bg-yellow-100 text-yellow-700'
                 }`}>
                   {cita.estado}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Seguimiento Required */}
+      {seguimientoEmpresas.length > 0 && (
+        <div className="card border-2 border-red-200 bg-red-50">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+            Seguimiento Requerido ({seguimientoEmpresas.length})
+          </h3>
+          <div className="space-y-3">
+            {seguimientoEmpresas.slice(0, 5).map((empresa) => (
+              <div key={empresa.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-red-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <Building2 className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{empresa.nombre}</p>
+                    <p className="text-xs text-gray-500">
+                      {empresa.fecha_seguimiento ? new Date(empresa.fecha_seguimiento).toLocaleDateString('es') : 'Sin fecha'}
+                    </p>
+                  </div>
+                </div>
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  empresa.estado === 'interesado' ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-gray-100 text-gray-700'
+                }`}>
+                  {empresa.estado}
                 </span>
               </div>
             ))}

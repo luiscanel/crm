@@ -203,6 +203,18 @@ export default function Empresas() {
     ) : null;
   };
 
+  // Estado order for flow validation
+  const estadosFlujo = ['nuevo', 'contactado', 'interesado', 'cita_agendada', 'seguimiento', 'cerrado'];
+  const estadoIndex = (e) => estadosFlujo.indexOf(e);
+  
+  const puedeCambiarEstado = (actual, nuevo) => {
+    // Allow transition if moving forward in flow or moving backward
+    const idxActual = estadoIndex(actual);
+    const idxNuevo = estadoIndex(nuevo);
+    if (idxNuevo === -1) return true; // estado válido
+    return true; // Allow any for now - can add restrictions later
+  };
+
   // Export to CSV from backend
   const exportToCSV = async () => {
     try {
@@ -603,7 +615,17 @@ export default function Empresas() {
                   <label className="label">Estado</label>
                   <select
                     value={formData.estado}
-                    onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
+                    onChange={(e) => {
+                      const nuevo = e.target.value;
+                      const actual = formData.estado;
+                      // Validate flow
+                      if (estadoIndex(nuevo) < estadoIndex(actual) - 1 && nuevo !== 'cerrado') {
+                        if (!confirm(`¿Seguro que quieres cambiar de "${estados.find(s => s.value === actual)?.label}" a "${estados.find(s => s.value === nuevo)?.label}"?`)) {
+                          return;
+                        }
+                      }
+                      setFormData({ ...formData, estado: nuevo });
+                    }}
                     className="input"
                   >
                     {estados.map(e => (
