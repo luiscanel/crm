@@ -166,7 +166,7 @@ export default function Citas() {
         </select>
       </div>
 
-      {/* Citas List */}
+      {/* Citas Cards */}
       {loading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
@@ -176,74 +176,93 @@ export default function Citas() {
           No hay citas registradas
         </div>
       ) : (
-        <div className="space-y-6">
-          {Object.entries(groupedCitas).map(([date, dateCitas]) => (
-            <div key={date}>
-              <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">
-                {date}
-              </h3>
-              <div className="grid gap-4">
-                {dateCitas.map((cita) => (
-                  <div key={cita.id} className="card flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                        tiposCita.find(t => t.value === cita.tipo)?.color || 'bg-gray-100'
-                      }`}>
-                        {getTipoIcon(cita.tipo)}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{cita.empresa_nombre}</p>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <Clock size={14} />
-                          {new Date(cita.fecha_hora).toLocaleTimeString('es', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                          {cita.contacto_nombre && (
-                            <span>• {cita.contacto_nombre}</span>
-                          )}
-                        </div>
-                        {cita.notas && (
-                          <p className="text-sm text-gray-500 mt-1">{cita.notas}</p>
-                        )}
-                        {cita.link_videollamada && (
-                          <a 
-                            href={cita.link_videollamada} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:underline flex items-center gap-1 mt-1"
-                          >
-                            <Video size={14} /> Unirse a videollamada
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {getEstadoBadge(cita.estado)}
-                      {cita.estado === 'pendiente' && (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleUpdateEstado(cita.id, 'realizada')}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
-                            title="Marcar como realizada"
-                          >
-                            <CheckCircle size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(cita.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                            title="Eliminar"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {citas.map((cita) => {
+            const tipoObj = tiposCita.find(t => t.value === cita.tipo);
+            const estadoObj = estadosCita.find(e => e.value === cita.estado);
+            const fecha = new Date(cita.fecha_hora);
+            const isToday = fecha.toDateString() === new Date().toDateString();
+            const isPast = fecha < new Date() && cita.estado === 'pendiente';
+            
+            return (
+              <div 
+                key={cita.id}
+                className={`card hover:shadow-lg transition-shadow ${
+                  isPast ? 'border-l-4 border-red-400' : 
+                  isToday ? 'border-l-4 border-primary-600' : ''
+                }`}
+              >
+                {/* Header */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    tipoObj?.color || 'bg-gray-100'
+                  }`}>
+                    {tipoObj && <tipoObj.icon className="w-5 h-5" />}
                   </div>
-                ))}
+                  <span className={`badge ${estadoObj?.color}`}>{estadoObj?.label}</span>
+                </div>
+                
+                {/* Empresa */}
+                <h3 className="font-semibold text-gray-900 text-lg mb-2">
+                  {cita.empresa_nombre}
+                </h3>
+                
+                {/* Fecha y Hora */}
+                <div className="flex items-center gap-2 text-gray-600 mb-2">
+                  <Calendar size={16} className="text-primary-600" />
+                  <span className="font-medium">
+                    {isToday ? 'Hoy' : fecha.toLocaleDateString('es', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </span>
+                  <Clock size={16} className="text-primary-600 ml-2" />
+                  <span>{fecha.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                
+                {/* Contacto */}
+                {cita.contacto_nombre && (
+                  <div className="text-sm text-gray-500 mb-2">
+                    👤 {cita.contacto_nombre}
+                  </div>
+                )}
+                
+                {/* Notas */}
+                {cita.notas && (
+                  <p className="text-sm text-gray-500 mb-3 line-clamp-2">
+                    {cita.notas}
+                  </p>
+                )}
+                
+                {/* Link Videollamada */}
+                {cita.link_videollamada && (
+                  <a 
+                    href={cita.link_videollamada}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-blue-600 hover:underline mb-3"
+                  >
+                    <Video size={16} /> Unirse a videollamada
+                  </a>
+                )}
+                
+                {/* Acciones */}
+                {cita.estado === 'pendiente' && (
+                  <div className="flex gap-2 pt-3 border-t">
+                    <button
+                      onClick={() => handleUpdateEstado(cita.id, 'realizada')}
+                      className="btn btn-success flex-1 text-sm py-2"
+                    >
+                      <CheckCircle size={16} /> Realizada
+                    </button>
+                    <button
+                      onClick={() => handleDelete(cita.id)}
+                      className="btn btn-danger text-sm py-2 px-3"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
