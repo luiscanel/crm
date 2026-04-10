@@ -11,8 +11,24 @@ router.post('/seed', authenticateToken, isAdmin, (req, res) => {
     
     // Get all users
     const users = db.all('SELECT * FROM users');
+    console.log('Users found:', users.length);
     if (users.length === 0) {
       return res.status(400).json({ error: 'No hay usuarios en el sistema' });
+    }
+    
+    // Create vendedor if not exists
+    let vendedorUser = users.find(u => u.role === 'vendedor');
+    if (!vendedorUser) {
+      const { v4: uuidv4 } = require('uuid');
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = bcrypt.hashSync('vendedor123', 10);
+      const vendedorId = uuidv4();
+      db.run(
+        `INSERT INTO users (id, email, password, name, role, puntos) VALUES (?, ?, ?, ?, ?, ?)`,
+        [vendedorId, 'vendedor@teknao.com', hashedPassword, 'Vendedor Demo', 'vendedor', 0]
+      );
+      vendedorUser = { id: vendedorId };
+      console.log('Created vendedor user');
     }
     
     // Create 10 empresas
@@ -33,12 +49,16 @@ router.post('/seed', authenticateToken, isAdmin, (req, res) => {
     for (const emp of empresasData) {
       const id = uuidv4();
       empresasIds.push(id);
-      const vendedorId = users.find(u => u.role === 'vendedor')?.id || users[0].id;
+      const vendedorId = vendedorUser.id;
       
-      db.run(
-        `INSERT INTO empresas (id, nombre, industria, tamano, ubicacion, telefono, estado, vendedor_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
-        [id, emp.nombre, emp.industria, emp.tamano, emp.ubicacion, emp.telefono, emp.estado, vendedorId]
-      );
+      try {
+        db.run(
+          `INSERT INTO empresas (id, nombre, industria, tamano, ubicacion, telefono, estado, vendedor_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [id, emp.nombre, emp.industria, emp.tamano, emp.ubicacion, emp.telefono, emp.estado, vendedorId]
+        );
+      } catch(e) {
+        console.error('Error inserting empresa:', e.message);
+      }
     }
     
     // Create 20 contactos (2 per empresa)
@@ -53,7 +73,7 @@ router.post('/seed', authenticateToken, isAdmin, (req, res) => {
         contactosData.push(contactoId);
         
         db.run(
-          `INSERT INTO contactos (id, empresa_id, nombre, cargo, telefono, canal_preferido, nivel_interes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+          `INSERT INTO contactos (id, empresa_id, nombre, cargo, telefono, canal_preferido, nivel_interes) VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [contactoId, empresasIds[i], nombres[idx], cargos[idx], `+50298765${String(i * 2 + j).padStart(3, '0')}`, 'whatsapp', 'medio']
         );
       }
@@ -64,11 +84,11 @@ router.post('/seed', authenticateToken, isAdmin, (req, res) => {
     for (let i = 0; i < 15; i++) {
       const empresaId = empresasIds[i % empresasIds.length];
       const llamadaId = uuidv4();
-      const vendedorId = users.find(u => u.role === 'vendedor')?.id || users[0].id;
+    const vendedorId = vendedorUser.id;
       const esEfectivo = Math.random() > 0.5;
       
       db.run(
-        `INSERT INTO llamadas (id, empresa_id, vendedor_id, estado, observaciones, es_contacto_efectivo, fecha_llamada, created_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+        `INSERT INTO llamadas (id, empresa_id, vendedor_id, estado, observaciones, es_contacto_efectivo, fecha_llamada) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
         [llamadaId, empresaId, vendedorId, estadosLlamada[i % estadosLlamada.length], `Llamada de seguimiento #${i + 1}`, esEfectivo ? 1 : 0]
       );
     }
@@ -79,10 +99,10 @@ router.post('/seed', authenticateToken, isAdmin, (req, res) => {
     for (let i = 0; i < 5; i++) {
       const citaId = uuidv4();
       const empresaId = empresasIds[i];
-      const vendedorId = users.find(u => u.role === 'vendedor')?.id || users[0].id;
+    const vendedorId = vendedorUser.id;
       
       db.run(
-        `INSERT INTO citas (id, empresa_id, vendedor_id, tipo, fecha_hora, estado, notas, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+        `INSERT INTO citas (id, empresa_id, vendedor_id, tipo, fecha_hora, estado, notas) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [citaId, empresaId, vendedorId, tiposCita[i % tiposCita.length], `2026-04-${String(15 + i).padStart(2, '0')} 10:00:00`, estadosCita[i % estadosCita.length], `Cita programada #${i + 1}`]
       );
     }
@@ -93,10 +113,10 @@ router.post('/seed', authenticateToken, isAdmin, (req, res) => {
     for (let i = 0; i < 10; i++) {
       const tareaId = uuidv4();
       const empresaId = empresasIds[i % empresasIds.length];
-      const vendedorId = users.find(u => u.role === 'vendedor')?.id || users[0].id;
+    const vendedorId = vendedorUser.id;
       
       db.run(
-        `INSERT INTO tareas (id, empresa_id, vendedor_id, titulo, descripcion, prioridad, estado, fecha_limite, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+        `INSERT INTO tareas (id, empresa_id, vendedor_id, titulo, descripcion, prioridad, estado, fecha_limite) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [tareaId, empresaId, vendedorId, `Tarea #${i + 1}: Seguimiento`, `seguimiento requerido para empresa`, prioridades[i % prioridades.length], estadosTarea[i % estadosTarea.length], `2026-04-${String(20 + i).padStart(2, '0')}`]
       );
     }
@@ -105,10 +125,10 @@ router.post('/seed', authenticateToken, isAdmin, (req, res) => {
     for (let i = 0; i < 5; i++) {
       const notaId = uuidv4();
       const empresaId = empresasIds[i];
-      const vendedorId = users.find(u => u.role === 'vendedor')?.id || users[0].id;
+    const vendedorId = vendedorUser.id;
       
       db.run(
-        `INSERT INTO notas (id, empresa_id, vendedor_id, contenido, created_at) VALUES (?, ?, ?, ?, datetime('now'))`,
+        `INSERT INTO notas (id, empresa_id, vendedor_id, contenido) VALUES (?, ?, ?, ?)`,
         [notaId, empresaId, vendedorId, `Nota de seguimiento #${i + 1}: Cliente muy interesado en nuestros servicios.`]
       );
     }
