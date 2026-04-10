@@ -43,6 +43,7 @@ export default function Llamadas() {
   const [showModal, setShowModal] = useState(false);
   const [dailyStats, setDailyStats] = useState(null);
   const [filterEstado, setFilterEstado] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     empresa_id: '',
     contacto_id: '',
@@ -73,23 +74,32 @@ export default function Llamadas() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
+    
+    setSubmitting(true);
     try {
       const result = await api.createLlamada(formData);
       console.log('Llamada result:', result);
+      
       if (result.error) {
         alert(result.error);
+        setSubmitting(false);
         return;
       }
+      
       if (result.puntos_ganados) {
         alert(`Llamada registrada! +${result.puntos_ganados} puntos`);
-        refreshUser(); // Refresh user puntos
+        refreshUser();
       }
+      
       setShowModal(false);
       setFormData({ empresa_id: '', contacto_id: '', estado: '', observaciones: '' });
       loadData();
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al registrar llamada');
+      alert('Error al registrar llamada: ' + error.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -360,15 +370,16 @@ export default function Llamadas() {
                   type="button"
                   onClick={() => setShowModal(false)}
                   className="btn btn-secondary flex-1"
+                  disabled={submitting}
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit" 
                   className="btn btn-primary flex-1"
-                  disabled={!formData.empresa_id || !formData.estado}
+                  disabled={!formData.empresa_id || !formData.estado || submitting}
                 >
-                  Registrar
+                  {submitting ? 'Registrando...' : 'Registrar'}
                 </button>
               </div>
             </form>
