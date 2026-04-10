@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [gamificacionStats, setGamificacionStats] = useState(null);
   const [fraseDelDia, setFraseDelDia] = useState('');
   const [citasProximas, setCitasProximas] = useState([]);
+  const [chartDays, setChartDays] = useState(7);
 
   useEffect(() => {
     loadData();
@@ -44,19 +45,21 @@ export default function Dashboard() {
     setFraseDelDia(frasesMotivacionales[diaDelAno % frasesMotivacionales.length]);
   }, []);
 
+  useEffect(() => {
+    loadChartData();
+  }, [chartDays]);
+
   const loadData = async () => {
     try {
-      const [general, daily, charts, gamStats, citas, convData] = await Promise.all([
+      const [general, daily, gamStats, citas, convData] = await Promise.all([
         api.getDashboardGeneral(),
         api.getLlamadasDaily(),
-        api.getDashboardCharts(7),
         api.getDashboardStats(),
         api.getCitasUpcoming(),
         api.getConversionData()
       ]);
       setGeneralStats(general);
       setDailyStats(daily);
-      setChartData(charts);
       setGamificacionStats(gamStats);
       setCitasProximas(citas || []);
       setConversionData(convData);
@@ -64,6 +67,15 @@ export default function Dashboard() {
       console.error('Error loading dashboard:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadChartData = async () => {
+    try {
+      const charts = await api.getDashboardCharts(chartDays);
+      setChartData(charts);
+    } catch (error) {
+      console.error('Error loading chart data:', error);
     }
   };
 
@@ -217,9 +229,20 @@ export default function Dashboard() {
 
         {/* Weekly Chart */}
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">
-            Última Semana
-          </h3>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Últimos {chartDays} días
+            </h3>
+            <select 
+              value={chartDays}
+              onChange={(e) => setChartDays(Number(e.target.value))}
+              className="input py-1 px-2 text-sm w-32"
+            >
+              <option value={7}>7 días</option>
+              <option value={14}>14 días</option>
+              <option value={30}>30 días</option>
+            </select>
+          </div>
           <div className="flex items-end justify-between h-48 gap-2">
             {chartData.map((day, index) => {
               const maxCalls = Math.max(...chartData.map(d => d.llamadas), 1);

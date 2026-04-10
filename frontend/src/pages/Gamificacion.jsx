@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
-import { Trophy, Star, Target, Award, Medal, Crown, Zap, CheckCircle, Gift, ShoppingBag } from 'lucide-react';
+import { Trophy, Star, Target, Award, Medal, Crown, Zap, CheckCircle, Gift, ShoppingBag, Phone, Calendar, Users, Building2, Handshake, TrendingUp } from 'lucide-react';
 
 export default function Gamificacion() {
   const { user, refreshUser } = useAuth();
@@ -58,11 +58,23 @@ export default function Gamificacion() {
     }
   };
 
-  const getBadgeIcon = (nombre) => {
-    if (nombre.includes('Llamadas')) return '📞';
-    if (nombre.includes('Citas')) return '📅';
-    if (nombre.includes('Conversión')) return '🎯';
-    return '🏆';
+  // Get badge icon based on tipo
+  const getBadgeIcon = (badge) => {
+    if (badge.earned) {
+      // Show gold Trophy for earned badges
+      return { icon: Trophy, color: 'text-yellow-500', bg: 'bg-yellow-100' };
+    }
+    
+    // Different icons based on tipo for unearned badges
+    const iconsByType = {
+      'llamada': { icon: Phone, color: 'text-blue-400', bg: 'bg-blue-50' },
+      'contacto': { icon: Handshake, color: 'text-green-400', bg: 'bg-green-50' },
+      'cita': { icon: Calendar, color: 'text-purple-400', bg: 'bg-purple-50' },
+      'empresa': { icon: Building2, color: 'text-orange-400', bg: 'bg-orange-50' },
+      'conversion': { icon: TrendingUp, color: 'text-teal-400', bg: 'bg-teal-50' }
+    };
+    
+    return iconsByType[badge.tipo] || { icon: Award, color: 'text-gray-400', bg: 'bg-gray-50' };
   };
 
   if (loading) {
@@ -234,35 +246,41 @@ export default function Gamificacion() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {badges.map((badge) => (
-            <div 
-              key={badge.id}
-              className={`p-4 rounded-lg border-2 text-center transition-all ${
-                badge.earned 
-                  ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-400' 
-                  : 'bg-gray-50 border-gray-200 opacity-60'
-              }`}
-            >
-              <div className="text-4xl mb-2">{getBadgeIcon(badge.nombre)}</div>
-              <h3 className="font-semibold text-gray-900">{badge.nombre}</h3>
-              <p className="text-sm text-gray-500 mt-1">{badge.descripcion}</p>
-              {badge.earned && (
-                <p className="text-xs text-green-600 mt-2">
-                  ✓ Obtenida el {new Date(badge.obtained_at).toLocaleDateString('es')}
-                </p>
-              )}
-              {!badge.earned && badge.tipo === 'llamadas' && (
-                <p className="text-xs text-gray-500 mt-2">
-                  Requiere: {badge.requisito} llamadas
-                </p>
-              )}
-              {!badge.earned && badge.tipo === 'citas' && (
-                <p className="text-xs text-gray-500 mt-2">
-                  Requiere: {badge.requisito} citas
-                </p>
-              )}
-              {!badge.earned && badge.tipo === 'conversion' && (
-                <p className="text-xs text-gray-500 mt-2">
+          {badges.map((badge) => {
+            const badgeStyle = getBadgeIcon(badge);
+            const IconComponent = badgeStyle.icon;
+            
+            return (
+              <div 
+                key={badge.id}
+                className={`p-4 rounded-lg border-2 text-center transition-all ${
+                  badge.earned 
+                    ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-400' 
+                    : 'bg-gray-50 border-gray-200 opacity-60'
+                }`}
+              >
+                <div className={`w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center ${badgeStyle.bg}`}>
+                  <IconComponent className={`w-8 h-8 ${badge.earned ? 'text-yellow-500' : badgeStyle.color}`} />
+                </div>
+                <h3 className="font-semibold text-gray-900">{badge.nombre}</h3>
+                <p className="text-sm text-gray-500 mt-1">{badge.descripcion}</p>
+                {badge.earned && (
+                  <p className="text-xs text-green-600 mt-2">
+                    ✓ Obtenida el {new Date(badge.obtained_at).toLocaleDateString('es')}
+                  </p>
+                )}
+                {!badge.earned && badge.tipo === 'llamada' && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Requiere: {badge.requisito} llamadas
+                  </p>
+                )}
+                {!badge.earned && badge.tipo === 'cita' && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Requiere: {badge.requisito} citas
+                  </p>
+                )}
+                {!badge.earned && badge.tipo === 'conversion' && (
+                  <p className="text-xs text-gray-500 mt-2">
                   Requiere: {badge.requisito}% conversión
                 </p>
               )}
