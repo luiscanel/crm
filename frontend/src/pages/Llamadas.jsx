@@ -75,6 +75,11 @@ export default function Llamadas() {
     e.preventDefault();
     try {
       const result = await api.createLlamada(formData);
+      console.log('Llamada result:', result);
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
       if (result.puntos_ganados) {
         alert(`Llamada registrada! +${result.puntos_ganados} puntos`);
         refreshUser(); // Refresh user puntos
@@ -84,6 +89,7 @@ export default function Llamadas() {
       loadData();
     } catch (error) {
       console.error('Error:', error);
+      alert('Error al registrar llamada');
     }
   };
 
