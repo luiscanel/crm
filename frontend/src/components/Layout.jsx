@@ -2,7 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   LayoutDashboard, Users, Building2, Phone, Calendar, 
-  Trophy, FileText, LogOut, Menu, X, CheckSquare, Kanban
+  Trophy, FileText, LogOut, Menu, X, CheckSquare, LayoutGrid
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -19,7 +19,7 @@ export default function Layout() {
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/empresas', icon: Building2, label: 'Empresas' },
-    { to: '/kanban', icon: Kanban, label: 'Pipeline' },
+    { to: '/kanban', icon: LayoutGrid, label: 'Pipeline' },
     { to: '/llamadas', icon: Phone, label: 'Llamadas' },
     { to: '/citas', icon: Calendar, label: 'Citas' },
     { to: '/tareas', icon: CheckSquare, label: 'Tareas' },
