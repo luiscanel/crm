@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Plus, Search, Edit, Trash2, Eye, Building2, 
+  Plus, Search, Edit, Edit2, Trash2, Eye, Building2, 
   MapPin, Users, Phone, Mail, MessageCircle, Download, Upload, FileText, ExternalLink
 } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -23,6 +23,7 @@ export default function Empresas() {
   const { user, refreshUser } = useAuth();
   const [empresas, setEmpresas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showDetail, setShowDetail] = useState(null);
   const [showContactoModal, setShowContactoModal] = useState(false);
@@ -472,8 +473,18 @@ export default function Empresas() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={async () => {
-                          const detail = await api.getEmpresa(empresa.id);
-                          setShowDetail(detail);
+                          setLoadingDetail(true);
+                          try {
+                            console.log('Fetching empresa:', empresa.id);
+                            const detail = await api.getEmpresa(empresa.id);
+                            console.log('Detail response:', detail);
+                            setShowDetail(detail);
+                          } catch (err) {
+                            console.error('Error:', err);
+                            alert('Error al cargar detalles: ' + err.message);
+                          } finally {
+                            setLoadingDetail(false);
+                          }
                         }}
                         className="p-1.5 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded"
                         title="Ver detalles"

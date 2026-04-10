@@ -87,6 +87,7 @@ function initDatabase() {
       nivel_interes TEXT,
       notas TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT,
       FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
     );
 
@@ -115,6 +116,7 @@ function initDatabase() {
       link_videollamada TEXT,
       notas TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT,
       FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
       FOREIGN KEY (vendedor_id) REFERENCES users(id)
     );
