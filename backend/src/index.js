@@ -68,6 +68,7 @@ async function startServer() {
     const notasRoutes = require('./routes/notas');
     const plantillasRoutes = require('./routes/plantillas');
     const tareasRoutes = require('./routes/tareas');
+    const adminRoutes = require('./routes/admin');
 
     // API Routes
     app.use('/api/auth', authRoutes);
@@ -80,6 +81,7 @@ async function startServer() {
     app.use('/api/notas', notasRoutes);
     app.use('/api/plantillas', plantillasRoutes);
     app.use('/api/tareas', tareasRoutes);
+    app.use('/api/admin', adminRoutes);
 
     // Health check
     app.get('/api/health', (req, res) => {

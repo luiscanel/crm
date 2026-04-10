@@ -43,4 +43,6 @@ const requireRole = (roles) => {
   };
 };
 
-module.exports = { authenticateToken, requireRole, JWT_SECRET: SECRET };
+const isAdmin = requireRole(['admin']);
+
+module.exports = { authenticateToken, requireRole, isAdmin, JWT_SECRET: SECRET };

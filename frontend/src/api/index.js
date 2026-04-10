@@ -325,5 +325,15 @@ export const api = {
     fetch(`${API_URL}/plantillas/${id}`, { headers: headers() }).then(res => res.json()),
 
   getPlantillasByCanal: (canal) => 
-    fetch(`${API_URL}/plantillas/canal/${canal}`, { headers: headers() }).then(res => res.json())
+    fetch(`${API_URL}/plantillas/canal/${canal}`, { headers: headers() }).then(res => res.json()),
+
+  // Admin - Seed
+  seedData: () =>
+    fetch(`${API_URL}/admin/seed`, { method: 'POST', headers: headers() }).then(res => res.json()),
+
+  clearSeed: () =>
+    fetch(`${API_URL}/admin/clear-seed`, { method: 'POST', headers: headers() }).then(res => res.json()),
+
+  getSeedStatus: () =>
+    fetch(`${API_URL}/admin/seed-status`, { headers: headers() }).then(res => res.json())
 };

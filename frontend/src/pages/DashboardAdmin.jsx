@@ -3,7 +3,7 @@ import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { 
   Phone, Building2, Users, Calendar, TrendingUp, TrendingDown,
-  Target, Award, BarChart3, ArrowUp, ArrowDown, PieChart
+  Target, Award, BarChart3, ArrowUp, ArrowDown, PieChart, Database, Trash2, RefreshCw
 } from 'lucide-react';
 
 export default function DashboardAdmin() {
@@ -14,9 +14,12 @@ export default function DashboardAdmin() {
   const [loading, setLoading] = useState(true);
   const [vendedorSeleccionado, setVendedorSeleccionado] = useState(null);
   const [vendedorDiario, setVendedorDiario] = useState([]);
+  const [seedLoading, setSeedLoading] = useState(false);
+  const [seedStatus, setSeedStatus] = useState(null);
 
   useEffect(() => {
     loadData();
+    loadSeedStatus();
   }, [periodo]);
 
   const loadData = async () => {
@@ -41,6 +44,51 @@ export default function DashboardAdmin() {
       setVendedorDiario(data);
     } catch (error) {
       console.error('Error:', error);
+    }
+  };
+
+  const loadSeedStatus = async () => {
+    try {
+      const status = await api.getSeedStatus();
+      setSeedStatus(status);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const handleSeed = async () => {
+    if (!confirm('¿Crear datos de prueba? Esto agregará 10 empresas, 20 contactos, 15 llamadas, 5 citas, 10 tareas y 5 notas.')) return;
+    setSeedLoading(true);
+    try {
+      const result = await api.seedData();
+      if (result.success) {
+        alert('Datos de prueba creados correctamente');
+        loadSeedStatus();
+      } else {
+        alert(result.error || 'Error al crear datos');
+      }
+    } catch (error) {
+      alert('Error al crear datos de prueba');
+    } finally {
+      setSeedLoading(false);
+    }
+  };
+
+  const handleClearSeed = async () => {
+    if (!confirm('¿Eliminar todos los datos de prueba? Esto borrará todas las empresas, contactos, llamadas, citas, tareas y notas.')) return;
+    setSeedLoading(true);
+    try {
+      const result = await api.clearSeed();
+      if (result.success) {
+        alert('Datos de prueba eliminados');
+        loadSeedStatus();
+      } else {
+        alert(result.error || 'Error al eliminar datos');
+      }
+    } catch (error) {
+      alert('Error al eliminar datos de prueba');
+    } finally {
+      setSeedLoading(false);
     }
   };
 
@@ -101,6 +149,35 @@ export default function DashboardAdmin() {
           ))}
         </div>
       </div>
+
+      {/* Admin Seed Buttons */}
+      {user?.role === 'admin' && (
+        <div className="flex gap-2 items-center">
+          <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
+            <button
+              onClick={handleSeed}
+              disabled={seedLoading}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-md transition-colors disabled:opacity-50"
+            >
+              {seedLoading ? <RefreshCw className="animate-spin" size={16} /> : <Database size={16} />}
+              Seed
+            </button>
+            <button
+              onClick={handleClearSeed}
+              disabled={seedLoading}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-md transition-colors disabled:opacity-50"
+            >
+              <Trash2 size={16} />
+              Limpiar
+            </button>
+          </div>
+          {seedStatus && (
+            <div className="text-xs text-gray-500">
+              Emp:{seedStatus.empresas} Cont:{seedStatus.contactos} Cits:{seedStatus.citas}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Comparación con periodo anterior */}
       {comparacion && (
