@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { FileText, Download, Calendar, TrendingUp, Users, Phone, Building2 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 export default function Reportes() {
   const { user } = useAuth();
@@ -57,6 +59,68 @@ export default function Reportes() {
     a.click();
   };
 
+  // Generate PDF report
+  const exportToPDF = () => {
+    if (!report) return;
+
+    const doc = new jsPDF();
+    const today = new Date().toLocaleDateString('es-GT');
+    
+    // Title
+    doc.setFontSize(18);
+    doc.text(`Reporte ${reportType.charAt(0).toUpperCase() + reportType.slice(1)}`, 14, 20);
+    doc.setFontSize(10);
+    doc.text(`Fecha de generación: ${today}`, 14, 28);
+    doc.text(`Período: ${report.periodo.inicio} - ${report.periodo.fin}`, 14, 34);
+
+    // Resumen ejecutivo
+    doc.setFontSize(14);
+    doc.text('Resumen Ejecutivo', 14, 46);
+    doc.setFontSize(10);
+    doc.text(`Total Llamadas: ${report.resumen.total_llamadas}`, 14, 54);
+    doc.text(`Llamadas Efectivas: ${report.resumen.llamadas_efectivas}`, 14, 60);
+    doc.text(`Leads Interesados: ${report.resumen.leads_interesados}`, 14, 66);
+    doc.text(`Citas Realizadas: ${report.resumen.citas_realizadas}`, 14, 72);
+    doc.text(`Citas Agendadas: ${report.resumen.citas_agendadas}`, 14, 78);
+
+    // Llamadas por vendedor table
+    doc.setFontSize(14);
+    doc.text('Llamadas por Vendedor', 14, 92);
+    
+    const vendedorData = report.llamadas_por_vendedor.map(v => [
+      v.vendedor,
+      v.total_llamadas,
+      v.efectivos,
+      v.interesados,
+      v.citas
+    ]);
+
+    doc.autoTable({
+      startY: 98,
+      head: [['Vendedor', 'Total Llamadas', 'Efectivos', 'Interesados', 'Citas']],
+      body: vendedorData,
+      theme: 'striped',
+      headStyles: { fillColor: [59, 130, 246] }
+    });
+
+    // Empresas por estado
+    const lastY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(14);
+    doc.text('Empresas por Estado', 14, lastY);
+    
+    const estadoData = report.empresas_por_estado.map(e => [e.estado, e.count]);
+    
+    doc.autoTable({
+      startY: lastY + 6,
+      head: [['Estado', 'Cantidad']],
+      body: estadoData,
+      theme: 'striped',
+      headStyles: { fillColor: [16, 185, 129] }
+    });
+
+    doc.save(`reporte_${reportType}_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -73,13 +137,22 @@ export default function Reportes() {
           <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
           <p className="text-gray-500 mt-1">Análisis y estadísticas del equipo de ventas</p>
         </div>
-        <button
-          onClick={exportToExcel}
-          className="btn btn-primary flex items-center gap-2"
-        >
-          <Download size={20} />
-          Exportar a Excel
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={exportToPDF}
+            className="btn btn-outline flex items-center gap-2"
+          >
+            <FileText size={20} />
+            PDF
+          </button>
+          <button
+            onClick={exportToExcel}
+            className="btn btn-primary flex items-center gap-2"
+          >
+            <Download size={20} />
+            Excel
+          </button>
+        </div>
       </div>
 
       {/* Report Type Selector */}

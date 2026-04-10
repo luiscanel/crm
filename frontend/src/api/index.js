@@ -43,6 +43,10 @@ export const api = {
     return fetch(`${API_URL}/empresas?${query}`, { headers: headers() }).then(res => res.json());
   },
 
+  // Get all empresas for export (returns JSON for PDF generation)
+  getEmpresasForExport: () => 
+    fetch(`${API_URL}/empresas`, { headers: headers() }).then(res => res.json()),
+
   getEmpresa: (id) => 
     fetch(`${API_URL}/empresas/${id}`, { headers: headers() }).then(res => res.json()),
 
@@ -115,6 +119,9 @@ export const api = {
       headers: { 'Authorization': `Bearer ${getToken()}` } 
     }).then(res => res.blob());
   },
+
+  getContactosForExport: () => 
+    fetch(`${API_URL}/contactos`, { headers: headers() }).then(res => res.json()),
 
   importContactos: (contactos) => 
     fetch(`${API_URL}/contactos/import`, {

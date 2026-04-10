@@ -3,8 +3,10 @@ import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { 
   Plus, Search, Edit, Trash2, Eye, Building2, 
-  MapPin, Users, Phone, Mail, MessageCircle, Download, Upload
+  MapPin, Users, Phone, Mail, MessageCircle, Download, Upload, FileText
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const estados = [
   { value: 'nuevo', label: 'Nuevo', color: 'bg-blue-100 text-blue-800' },
@@ -244,6 +246,42 @@ export default function Empresas() {
     e.target.value = ''; // Reset input
   };
 
+  // Export to PDF
+  const exportToPDF = async () => {
+    try {
+      const empresasData = await api.getEmpresasForExport();
+      const doc = new jsPDF();
+      
+      doc.setFontSize(18);
+      doc.text('Reporte de Empresas', 14, 20);
+      doc.setFontSize(10);
+      doc.text(`Fecha: ${new Date().toLocaleDateString('es-GT')}`, 14, 28);
+      doc.text(`Total empresas: ${empresasData.length}`, 14, 34);
+
+      const tableData = empresasData.map(e => [
+        e.nombre,
+        e.industria || '-',
+        e.estado,
+        e.telefono || '-',
+        e.ubicacion || '-'
+      ]);
+
+      doc.autoTable({
+        startY: 40,
+        head: [['Nombre', 'Industria', 'Estado', 'Teléfono', 'Ubicación']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] },
+        styles: { fontSize: 8 }
+      });
+
+      doc.save(`empresas_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Error al exportar PDF');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -252,30 +290,39 @@ export default function Empresas() {
           <h1 className="text-2xl font-bold text-gray-900">Empresas (Leads)</h1>
           <p className="text-gray-500 mt-1">{empresas.length} empresas registradas</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="btn btn-primary flex items-center gap-2"
-        >
-          <Plus size={20} />
-          Nueva Empresa
-        </button>
-        <button
-          onClick={exportToCSV}
-          className="btn btn-outline flex items-center gap-2"
-        >
-          <Download size={20} />
-          Exportar
-        </button>
-        <label className="btn btn-outline flex items-center gap-2 cursor-pointer">
-          <Upload size={20} />
-          Importar
-          <input
-            type="file"
-            accept=".csv"
-            onChange={handleImport}
-            className="hidden"
-          />
-        </label>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setShowModal(true)}
+            className="btn btn-primary flex items-center gap-2"
+          >
+            <Plus size={20} />
+            Nueva Empresa
+          </button>
+          <button
+            onClick={exportToCSV}
+            className="btn btn-outline flex items-center gap-2"
+          >
+            <Download size={20} />
+            CSV
+          </button>
+          <button
+            onClick={exportToPDF}
+            className="btn btn-outline flex items-center gap-2"
+          >
+            <FileText size={20} />
+            PDF
+          </button>
+          <label className="btn btn-outline flex items-center gap-2 cursor-pointer">
+            <Upload size={20} />
+            Importar
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleImport}
+              className="hidden"
+            />
+          </label>
+        </div>
       </div>
 
       {/* Filters */}
