@@ -104,8 +104,8 @@ router.post('/', authenticateToken, (req, res) => {
     const id = uuidv4();
 
     db.run(
-      `INSERT INTO citas (id, empresa_id, contacto_id, tipo, fecha_hora, estado, notas, link_videollamada) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, empresa_id, contacto_id || null, tipo, fecha_hora, 'pendiente', notas || '', link_videollamada || '']
+      `INSERT INTO citas (id, empresa_id, vendedor_id, contacto_id, tipo, fecha_hora, estado, notas, link_videollamada) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, empresa_id, req.user.id, contacto_id || null, tipo, fecha_hora, 'pendiente', notas || '', link_videollamada || '']
     );
 
     // Assign points for scheduling cita (+10 points)

@@ -368,7 +368,7 @@ router.post('/solicitar-premio', authenticateToken, (req, res) => {
     }
     
     // Check if already requested
-    const alreadyRequested = db.get('SELECT 1 FROM solicitudes_premios WHERE user_id = ? AND premio_id = ? AND estado = ?', [req.user.id, premio_id, 'pendiente']);
+    const alreadyRequested = db.get('SELECT 1 FROM solicitudes_premios WHERE usuario_id = ? AND premio_id = ? AND estado = ?', [req.user.id, premio_id, 'pendiente']);
     if (alreadyRequested) {
       return res.status(400).json({ error: 'Ya tienes una solicitud pendiente para este premio' });
     }
@@ -383,7 +383,7 @@ router.post('/solicitar-premio', authenticateToken, (req, res) => {
     const solicitudId = uuidv4();
     
     db.run(
-      `INSERT INTO solicitudes_premios (id, user_id, premio_id, puntos_gastados, estado) VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO solicitudes_premios (id, usuario_id, premio_id, puntos_gastados, estado) VALUES (?, ?, ?, ?, ?)`,
       [solicitudId, req.user.id, premio_id, premio.puntos_requeridos, 'pendiente']
     );
     
@@ -454,25 +454,25 @@ router.post('/aprobar-solicitud', authenticateToken, (req, res) => {
     
     if (aprobar) {
       // Deduct points and award premio
-      db.run('UPDATE users SET puntos = puntos - ? WHERE id = ?', [solicitud.puntos_gastados, solicitud.user_id]);
-      db.run('INSERT INTO user_premios (user_id, premio_id) VALUES (?, ?)', [solicitud.user_id, solicitud.premio_id]);
-      db.run('UPDATE solicitudes_premios SET estado = ?, resuelta_at = CURRENT_TIMESTAMP, resuelta_por = ? WHERE id = ?', ['aprobado', req.user.id, solicitud_id]);
+      db.run('UPDATE users SET puntos = puntos - ? WHERE id = ?', [solicitud.puntos_gastados, solicitud.usuario_id]);
+      db.run('INSERT INTO user_premios (user_id, premio_id) VALUES (?, ?)', [solicitud.usuario_id, solicitud.premio_id]);
+      db.run("UPDATE solicitudes_premios SET estado = ?, resuelta_at = datetime('now'), resuelta_por = ? WHERE id = ?", ['aprobado', req.user.id, solicitud_id]);
       
       const premio = db.get('SELECT nombre FROM premios WHERE id = ?', [solicitud.premio_id]);
       db.run(
         `INSERT INTO activity_log (id, user_id, action, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?, ?)`,
-        [uuidv4(), req.user.id, 'aprobar_premio', 'solicitud_premio', solicitud_id, `Aprovó: ${premio.nombre} para usuario ${solicitud.user_id}`]
+        [uuidv4(), req.user.id, 'aprobar_premio', 'solicitud_premio', solicitud_id, `Aprobó: ${premio.nombre} para usuario ${solicitud.usuario_id}`]
       );
       
       res.json({ message: 'Premio aprobado', estado: 'aprobado' });
     } else {
       // Just reject
-      db.run('UPDATE solicitudes_premios SET estado = ?, resuelta_at = CURRENT_TIMESTAMP, resuelta_por = ? WHERE id = ?', ['rechazado', req.user.id, solicitud_id]);
+      db.run("UPDATE solicitudes_premios SET estado = ?, resuelta_at = datetime('now'), resuelta_por = ? WHERE id = ?", ['rechazado', req.user.id, solicitud_id]);
       
       const premio = db.get('SELECT nombre FROM premios WHERE id = ?', [solicitud.premio_id]);
       db.run(
         `INSERT INTO activity_log (id, user_id, action, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?, ?)`,
-        [uuidv4(), req.user.id, 'rechazar_premio', 'solicitud_premio', solicitud_id, `Rechazó: ${premio.nombre} para usuario ${solicitud.user_id}`]
+        [uuidv4(), req.user.id, 'rechazar_premio', 'solicitud_premio', solicitud_id, `Rechazó: ${premio.nombre} para usuario ${solicitud.usuario_id}`]
       );
       
       res.json({ message: 'Premio rechazado', estado: 'rechazado' });
@@ -497,9 +497,9 @@ router.get('/solicitudes', authenticateToken, (req, res) => {
       SELECT sp.*, p.nombre as premio_nombre, p.icono as premio_icono, u.name as usuario_nombre, u.email as usuario_email
       FROM solicitudes_premios sp
       JOIN premios p ON sp.premio_id = p.id
-      JOIN users u ON sp.user_id = u.id
+      JOIN users u ON sp.usuario_id = u.id
       WHERE sp.estado = 'pendiente'
-      ORDER BY sp.solicitada_at DESC
+      ORDER BY sp.solicitud_at DESC
     `);
     
     res.json(solicitudes);
@@ -518,8 +518,8 @@ router.get('/mis-solicitudes', authenticateToken, (req, res) => {
       SELECT sp.*, p.nombre as premio_nombre, p.icono as premio_icono
       FROM solicitudes_premios sp
       JOIN premios p ON sp.premio_id = p.id
-      WHERE sp.user_id = ?
-      ORDER BY sp.solicitada_at DESC
+      WHERE sp.usuario_id = ?
+      ORDER BY sp.solicitud_at DESC
     `, [req.user.id]);
     
     res.json(solicitudes);

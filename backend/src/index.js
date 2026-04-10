@@ -34,7 +34,7 @@ app.use((req, res, next) => {
 async function startServer() {
   try {
     // Initialize database
-    db = await initDatabase();
+    db = initDatabase();
     console.log('✅ Database connected');
     
     // Import routes after db is ready
@@ -55,7 +55,7 @@ async function startServer() {
     app.use('/api/citas', citasRoutes);
     app.use('/api/gamificacion', gamificacionRoutes);
     app.use('/api/dashboard', dashboardRoutes);
-    app.use('/api', notasRoutes);
+    app.use('/api/notas', notasRoutes);
 
     // Health check
     app.get('/api/health', (req, res) => {

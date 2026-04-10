@@ -13,17 +13,22 @@ const authenticateToken = (req, res, next) => {
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
+      console.error('JWT verify error:', err.message);
       return res.status(403).json({ error: 'Token inválido o expirado' });
     }
 
     // Get fresh user data from database
-    const userData = req.db.get('SELECT id, email, name, role, avatar, puntos FROM users WHERE id = ?', [user.id]);
-    if (!userData) {
-      return res.status(401).json({ error: 'Usuario no encontrado' });
+    try {
+      const userData = req.db.get('SELECT id, email, name, role, avatar, puntos FROM users WHERE id = ?', [user.id]);
+      if (!userData) {
+        return res.status(401).json({ error: 'Usuario no encontrado' });
+      }
+      req.user = userData;
+      next();
+    } catch (dbError) {
+      console.error('DB error in auth:', dbError.message);
+      res.status(500).json({ error: 'Error de base de datos' });
     }
-
-    req.user = userData;
-    next();
   });
 };
 

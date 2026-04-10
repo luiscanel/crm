@@ -14,26 +14,27 @@ router.get('/general', authenticateToken, (req, res) => {
     // Total empresas
     const totalEmpresas = db.get('SELECT COUNT(*) as count FROM empresas');
     
-    // Llamadas today/week/month
-    const llamadasHoy = db.get("SELECT COUNT(*) as count FROM llamadas WHERE fecha_llamada::date = CURRENT_DATE");
-    const llamadasSemana = db.get('SELECT COUNT(*) as count FROM llamadas WHERE fecha_llamada >= $1', [startOfWeek + ' 00:00:00']);
-    const llamadasMes = db.get('SELECT COUNT(*) as count FROM llamadas WHERE fecha_llamada >= $1', [startOfMonth + ' 00:00:00']);
+    // Llamadas today/week/month (SQLite compatible)
+    const llamadasHoy = db.get("SELECT COUNT(*) as count FROM llamadas WHERE date(fecha_llamada) = date('now')");
+    const llamadasSemana = db.get('SELECT COUNT(*) as count FROM llamadas WHERE fecha_llamada >= ?', [startOfWeek + ' 00:00:00']);
+    const llamadasMes = db.get('SELECT COUNT(*) as count FROM llamadas WHERE fecha_llamada >= ?', [startOfMonth + ' 00:00:00']);
     
     // Empresas contactadas hoy (unique)
-    const empresasContactadasHoy = db.get("SELECT COUNT(DISTINCT empresa_id) as count FROM llamadas WHERE fecha_llamada::date = CURRENT_DATE");
+    const empresasContactadasHoy = db.get("SELECT COUNT(DISTINCT empresa_id) as count FROM llamadas WHERE date(fecha_llamada) = date('now')");
     
-    // Leads interesados
-    const leadsInteresados = db.get("SELECT COUNT(*) as count FROM empresas WHERE estado IN ('interesado', 'cita_agendada')");
+    // Leads interesados (SQLite compatible - no IN () with strings)
+    const leadsInteresados = db.get("SELECT COUNT(*) as count FROM empresas WHERE estado = 'interesado' OR estado = 'cita_agendada'");
     
     // Citas agendadas (pendientes)
     const citasPendientes = db.get("SELECT COUNT(*) as count FROM citas WHERE estado = 'pendiente'");
     
     // Citas realizadas este mes
-    const citasMes = db.get("SELECT COUNT(*) as count FROM citas WHERE estado = 'realizada' AND fecha_hora::date >= $1", [startOfMonth]);
+    const citasMes = db.get("SELECT COUNT(*) as count FROM citas WHERE estado = 'realizada' AND date(fecha_hora) >= ?", [startOfMonth]);
     
     // Get weekly goal from retos table
     const metaSemanal = db.get("SELECT meta FROM retos WHERE tipo = 'semanal' AND activo = 1 ORDER BY created_at DESC LIMIT 1");
     const metaSemanalValor = metaSemanal?.meta || 125;
+    const metaDiaria = 25;
     
     // Calculate goal compliance
     const cumplimientoLlamadas = Math.min((llamadasHoy.count / metaDiaria) * 100, 100);
@@ -84,14 +85,14 @@ router.get('/vendedor/:id', authenticateToken, (req, res) => {
     // Efectivos
     const contactosEfectivos = db.get('SELECT COUNT(*) as count FROM llamadas WHERE vendedor_id = ? AND es_contacto_efectivo = 1', [id]);
     
-    // Interesados
+    // Interesados (SQLite compatible)
     const interesados = db.get(`
       SELECT COUNT(DISTINCT e.id) as count 
       FROM empresas e
-      WHERE e.vendedor_id = ? AND e.estado IN ('interesado', 'cita_agendada')
+      WHERE e.vendedor_id = ? AND (e.estado = 'interesado' OR e.estado = 'cita_agendada')
     `, [id]);
     
-    // Citas
+    // Citas (SQLite compatible)
     const citasAgendadas = db.get('SELECT COUNT(*) as count FROM citas WHERE vendedor_id = ?', [id]);
     const citasRealizadas = db.get("SELECT COUNT(*) as count FROM citas WHERE vendedor_id = ? AND estado = 'realizada'", [id]);
     
@@ -315,14 +316,14 @@ router.get('/vendedores', authenticateToken, (req, res) => {
       
       // Citas agendadas
       const citasAgendadas = db.get(
-        'SELECT COUNT(*) as count FROM citas WHERE vendedor_id = ? AND estado = "pendiente"',
-        [usuario.id]
+        'SELECT COUNT(*) as count FROM citas WHERE vendedor_id = ? AND estado = ?',
+        [usuario.id, 'pendiente']
       );
       
       // Citas realizadas en periodo
       const citasRealizadas = db.get(
-        'SELECT COUNT(*) as count FROM citas WHERE vendedor_id = ? AND estado = "realizada" AND fecha_hora >= ?',
-        [usuario.id, startDate + ' 00:00:00']
+        'SELECT COUNT(*) as count FROM citas WHERE vendedor_id = ? AND estado = ? AND fecha_hora >= ?',
+        [usuario.id, 'realizada', startDate + ' 00:00:00']
       );
       
       // Puntos

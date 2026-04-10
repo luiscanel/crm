@@ -6,8 +6,36 @@ const router = express.Router();
 
 // ==================== NOTAS ====================
 
+// Get all notas (para admin) o mis notas
+router.get('/', authenticateToken, (req, res) => {
+  try {
+    let notas;
+    if (req.user.role === 'admin') {
+      notas = req.db.all(`
+        SELECT n.*, e.nombre as empresa_nombre, u.name as vendedor_nombre
+        FROM notas n
+        LEFT JOIN empresas e ON n.empresa_id = e.id
+        LEFT JOIN users u ON n.vendedor_id = u.id
+        ORDER BY n.created_at DESC
+      `);
+    } else {
+      notas = req.db.all(`
+        SELECT n.*, e.nombre as empresa_nombre
+        FROM notas n
+        LEFT JOIN empresas e ON n.empresa_id = e.id
+        WHERE n.vendedor_id = ?
+        ORDER BY n.created_at DESC
+      `, [req.user.id]);
+    }
+    res.json(notas);
+  } catch (error) {
+    console.error('Get notas error:', error);
+    res.status(500).json({ error: 'Error al obtener notas' });
+  }
+});
+
 // Get notas por empresa
-router.get('/empresa/:empresa_id/notas', authenticateToken, (req, res) => {
+router.get('/empresa/:empresa_id', authenticateToken, (req, res) => {
   try {
     const { empresa_id } = req.params;
     const notas = req.db.all(`
@@ -25,7 +53,7 @@ router.get('/empresa/:empresa_id/notas', authenticateToken, (req, res) => {
 });
 
 // Create nota
-router.post('/notas', authenticateToken, (req, res) => {
+router.post('/', authenticateToken, (req, res) => {
   try {
     const { empresa_id, contenido } = req.body;
     if (!empresa_id || !contenido) {
@@ -46,7 +74,7 @@ router.post('/notas', authenticateToken, (req, res) => {
 });
 
 // Delete nota
-router.delete('/notas/:id', authenticateToken, (req, res) => {
+router.delete('/:id', authenticateToken, (req, res) => {
   try {
     const { id } = req.params;
     req.db.run('DELETE FROM notas WHERE id = ?', [id]);
@@ -78,7 +106,7 @@ router.get('/mis-tareas', authenticateToken, (req, res) => {
           WHEN 'media' THEN 2 
           ELSE 3 
         END,
-        t.fecha_vencimiento ASC
+        t.fecha_limite ASC
     `, [req.user.id]);
     res.json(tareas);
   } catch (error) {
@@ -108,16 +136,16 @@ router.get('/empresa/:empresa_id/tareas', authenticateToken, (req, res) => {
 // Create tarea
 router.post('/tareas', authenticateToken, (req, res) => {
   try {
-    const { empresa_id, titulo, descripcion, fecha_vencimiento, prioridad } = req.body;
+    const { empresa_id, titulo, descripcion, fecha_limite, prioridad } = req.body;
     if (!empresa_id || !titulo) {
       return res.status(400).json({ error: 'Empresa y título requeridos' });
     }
     
     const id = uuidv4();
     req.db.run(
-      `INSERT INTO tareas (id, empresa_id, vendedor_id, titulo, descripcion, fecha_vencimiento, prioridad) 
+      `INSERT INTO tareas (id, empresa_id, vendedor_id, titulo, descripcion, fecha_limite, prioridad) 
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [id, empresa_id, req.user.id, titulo, descripcion || '', fecha_vencimiento || null, prioridad || 'media']
+      [id, empresa_id, req.user.id, titulo, descripcion || '', fecha_limite || null, prioridad || 'media']
     );
     
     res.status(201).json({ id, empresa_id, titulo, estado: 'pendiente' });
@@ -131,22 +159,22 @@ router.post('/tareas', authenticateToken, (req, res) => {
 router.put('/tareas/:id', authenticateToken, (req, res) => {
   try {
     const { id } = req.params;
-    const { titulo, descripcion, fecha_vencimiento, prioridad, estado } = req.body;
+    const { titulo, descripcion, fecha_limite, prioridad, estado } = req.body;
     
     const updates = [];
     const values = [];
     
     if (titulo !== undefined) { updates.push('titulo = ?'); values.push(titulo); }
     if (descripcion !== undefined) { updates.push('descripcion = ?'); values.push(descripcion); }
-    if (fecha_vencimiento !== undefined) { updates.push('fecha_vencimiento = ?'); values.push(fecha_vencimiento); }
+    if (fecha_limite !== undefined) { updates.push('fecha_limite = ?'); values.push(fecha_limite); }
     if (prioridad !== undefined) { updates.push('prioridad = ?'); values.push(prioridad); }
     if (estado !== undefined) { updates.push('estado = ?'); values.push(estado); }
     
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No hay campos para actualizar' });
     }
-    
-    updates.push('updated_at = CURRENT_TIMESTAMP');
+
+    updates.push("updated_at = datetime('now')");
     values.push(id);
     
     req.db.run(`UPDATE tareas SET ${updates.join(', ')} WHERE id = ?`, values);
