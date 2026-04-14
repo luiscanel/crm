@@ -15,6 +15,7 @@ import Gamificacion from './pages/Gamificacion';
 import Reportes from './pages/Reportes';
 import Usuarios from './pages/Usuarios';
 import SolicitudesPremios from './pages/SolicitudesPremios';
+import Settings from './pages/Settings';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading } = useAuth();
@@ -104,6 +105,7 @@ function AppRoutes() {
           <Route path="reportes" element={<ProtectedRoute allowedRoles={['admin', 'supervisor']}><Reportes /></ProtectedRoute>} />
           <Route path="usuarios" element={<ProtectedRoute allowedRoles={['admin', 'supervisor']}><Usuarios /></ProtectedRoute>} />
           <Route path="solicitudes-premios" element={<ProtectedRoute allowedRoles={['admin']}><SolicitudesPremios /></ProtectedRoute>} />
+          <Route path="configuracion" element={<ProtectedRoute allowedRoles={['admin']}><Settings /></ProtectedRoute>} />
         </Route>
         <Route
           path="/admin"
@@ -124,6 +126,7 @@ function AppRoutes() {
           <Route path="reportes" element={<ProtectedRoute allowedRoles={['admin', 'supervisor']}><Reportes /></ProtectedRoute>} />
           <Route path="usuarios" element={<ProtectedRoute allowedRoles={['admin', 'supervisor']}><Usuarios /></ProtectedRoute>} />
           <Route path="solicitudes-premios" element={<ProtectedRoute allowedRoles={['admin']}><SolicitudesPremios /></ProtectedRoute>} />
+          <Route path="configuracion" element={<ProtectedRoute allowedRoles={['admin']}><Settings /></ProtectedRoute>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

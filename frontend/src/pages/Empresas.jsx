@@ -345,7 +345,7 @@ export default function Empresas() {
             className="btn btn-primary flex items-center gap-2"
           >
             <Plus size={20} />
-            Nueva Empresa
+            <span id="empresas-add">Nueva Empresa</span>
           </button>
           <button
             onClick={exportToCSV}

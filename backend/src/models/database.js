@@ -224,6 +224,14 @@ function initDatabase() {
       FOREIGN KEY (usuario_id) REFERENCES users(id),
       FOREIGN KEY (premio_id) REFERENCES premios(id)
     );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      id TEXT PRIMARY KEY,
+      key TEXT UNIQUE NOT NULL,
+      value TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // Insert default admin user if not exists

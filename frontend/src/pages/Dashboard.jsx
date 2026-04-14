@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { 
   Phone, Building2, Users, Calendar, Trophy, TrendingUp,
   Target, Clock, Star, ArrowUp, ArrowDown, Flame, Award,
@@ -28,6 +29,7 @@ function getSaludo() {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [generalStats, setGeneralStats] = useState(null);
   const [dailyStats, setDailyStats] = useState(null);
   const [chartData, setChartData] = useState([]);
@@ -96,6 +98,7 @@ export default function Dashboard() {
       value: generalStats?.llamadas?.hoy || 0,
       icon: Phone,
       color: 'bg-blue-500',
+      gradient: 'from-blue-500 to-blue-600',
       subtext: `Meta: ${dailyStats?.meta_llamadas || 25}`
     },
     {
@@ -103,6 +106,7 @@ export default function Dashboard() {
       value: generalStats?.total_empresas || 0,
       icon: Building2,
       color: 'bg-green-500',
+      gradient: 'from-green-500 to-green-600',
       subtext: `${generalStats?.empresas_contactadas_hoy || 0} hoy`
     },
     {
@@ -110,6 +114,7 @@ export default function Dashboard() {
       value: generalStats?.leads_interesados || 0,
       icon: Users,
       color: 'bg-purple-500',
+      gradient: 'from-purple-500 to-purple-600',
       subtext: 'En pipeline'
     },
     {
@@ -117,6 +122,7 @@ export default function Dashboard() {
       value: generalStats?.citas_pendientes || 0,
       icon: Calendar,
       color: 'bg-orange-500',
+      gradient: 'from-orange-500 to-orange-600',
       subtext: `${generalStats?.citas_mes || 0} este mes`
     }
   ];
@@ -146,18 +152,24 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
-          <div key={stat.label} className="stat-card">
+      <div id="dashboard-content" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, index) => (
+          <div 
+            key={stat.label} 
+            className="stat-card card-hover"
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
             <div className="flex items-center justify-between">
-              <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}>
+              <div className={`stat-card-icon bg-gradient-to-br ${stat.gradient}`}>
                 <stat.icon className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xs text-gray-500">{stat.subtext}</span>
+              <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                {stat.subtext}
+              </span>
             </div>
             <div className="mt-4">
               <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
-              <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
+              <p className="text-sm font-medium text-gray-600 mt-1">{stat.label}</p>
             </div>
           </div>
         ))}
@@ -504,7 +516,11 @@ export default function Dashboard() {
           </h3>
           <div className="space-y-3">
             {seguimientoEmpresas.slice(0, 5).map((empresa) => (
-              <div key={empresa.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-red-100">
+              <div 
+                key={empresa.id} 
+                onClick={() => navigate(`/empresas/${empresa.id}`)}
+                className="flex items-center justify-between p-3 bg-white rounded-lg border border-red-100 cursor-pointer hover:bg-red-50"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
                     <Building2 className="w-5 h-5 text-red-600" />
