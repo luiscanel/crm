@@ -45,6 +45,13 @@ const tourSteps = [
     icon: Calendar
   },
   {
+    target: 'pipeline-link',
+    title: '🔄 Pipeline de Ventas',
+    content: 'Vista visual del flujo de tus empresas. Arrastra las tarjetas entre columnas para cambiar el estado:\n• Nuevo → Contactado → Interesado → Cita Agendada → Seguimiento → Cerrado\n💡 El estado lo decides tú según tu análisis del lead.',
+    position: 'right',
+    icon: Building2
+  },
+  {
     target: 'gamificacion-link',
     title: '🏆 Gamificación',
     content: 'Aquí ves tu rendimiento: puntos, badges ganados, retos activos y tu posición en el ranking de vendedores.',
@@ -179,9 +186,9 @@ export default function Tour({ isOpen, onClose, onStart }) {
               <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
                 <p className="text-sm text-green-800 font-medium">⭐ Ganas puntos por:</p>
                 <ul className="text-sm text-green-700 mt-1 space-y-1">
-                  <li>• +5 puntos por llamada registrada</li>
-                  <li>• +10 puntos por llamada efectiva (conectó)</li>
-                  <li>• +15 puntos por cita completada</li>
+                  <li>• +1 punto por llamada registrada</li>
+                  <li>• +3 puntos por llamada efectiva (contacto)</li>
+                  <li>• +10 puntos por agendar cita</li>
                 </ul>
               </div>
             )}

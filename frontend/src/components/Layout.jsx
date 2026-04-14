@@ -24,12 +24,12 @@ export default function Layout() {
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/empresas', icon: Building2, label: 'Empresas' },
-    { to: '/kanban', icon: LayoutGrid, label: 'Pipeline' },
+    { to: '/kanban', icon: LayoutGrid, label: 'Pipeline', id: 'pipeline-link' },
     { to: '/plantillas', icon: MessageSquare, label: 'Plantillas' },
-    { to: '/llamadas', icon: Phone, label: 'Llamadas' },
-    { to: '/citas', icon: Calendar, label: 'Citas' },
+    { to: '/llamadas', icon: Phone, label: 'Llamadas', id: 'llamadas-link' },
+    { to: '/citas', icon: Calendar, label: 'Citas', id: 'citas-link' },
     { to: '/tareas', icon: CheckSquare, label: 'Tareas' },
-    { to: '/gamificacion', icon: Trophy, label: 'Gamificación' },
+    { to: '/gamificacion', icon: Trophy, label: 'Gamificación', id: 'gamificacion-link' },
   ];
 
   if (user?.role === 'admin' || user?.role === 'supervisor') {
@@ -74,7 +74,7 @@ export default function Layout() {
                 key={item.to}
                 to={item.to}
                 onClick={() => setSidebarOpen(false)}
-                id={item.to === '/empresas' ? 'empresas-link' : item.to === '/llamadas' ? 'llamadas-link' : item.to === '/citas' ? 'citas-link' : item.to === '/gamificacion' ? 'gamificacion-link' : undefined}
+                id={item.id || (item.to === '/empresas' ? 'empresas-link' : undefined)}
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               >
                 <item.icon size={20} />

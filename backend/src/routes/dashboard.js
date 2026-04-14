@@ -333,22 +333,25 @@ router.get('/vendedores', authenticateToken, (req, res) => {
         [usuario.id, startDate + ' 00:00:00']
       );
       
-      // Contactos efectivos
+      // Contactos efectivos en periodo (no totales)
       const contactosEfectivos = db.get(
         'SELECT COUNT(*) as count FROM llamadas WHERE vendedor_id = ? AND es_contacto_efectivo = 1 AND fecha_llamada >= ?',
         [usuario.id, startDate + ' 00:00:00']
       );
       
-      // Leads interesados
-      const interesados = db.get(
-        `SELECT COUNT(*) as count FROM empresas WHERE vendedor_id = ? AND estado IN ('interesado', 'cita_agendada')`,
-        [usuario.id]
+      // Leads interesados del periodo (basado en llamadas del periodo que resultedron en interesados)
+      const interesadosPeriodo = db.get(
+        `SELECT COUNT(DISTINCT e.id) as count 
+         FROM empresas e 
+         JOIN llamadas l ON e.id = l.empresa_id 
+         WHERE l.vendedor_id = ? AND l.fecha_llamada >= ? AND e.estado IN ('interesado', 'cita_agendada')`,
+        [usuario.id, startDate + ' 00:00:00']
       );
       
-      // Citas agendadas
+      // Citas agendadas del periodo
       const citasAgendadas = db.get(
-        'SELECT COUNT(*) as count FROM citas WHERE vendedor_id = ? AND estado = ?',
-        [usuario.id, 'pendiente']
+        'SELECT COUNT(*) as count FROM citas WHERE vendedor_id = ? AND estado = ? AND fecha_hora >= ?',
+        [usuario.id, 'pendiente', startDate + ' 00:00:00']
       );
       
       // Citas realizadas en periodo
@@ -357,8 +360,15 @@ router.get('/vendedores', authenticateToken, (req, res) => {
         [usuario.id, 'realizada', startDate + ' 00:00:00']
       );
       
-      // Puntos
+      // Puntos del usuario (total acumulado)
       const user = db.get('SELECT puntos FROM users WHERE id = ?', [usuario.id]);
+      
+      // Calcular conversión: % de llamadas que resultaron en interesados
+      // Solo si hubo llamadas en el periodo
+      let conversion = 0;
+      if (llamadasPeriodo.count > 0) {
+        conversion = ((contactosEfectivos.count + interesadosPeriodo.count) / llamadasPeriodo.count * 100);
+      }
       
       return {
         id: usuario.id,
@@ -371,15 +381,13 @@ router.get('/vendedores', authenticateToken, (req, res) => {
         },
         empresas_unicas: empresasUnicas.count,
         contactos_efectivos: contactosEfectivos.count,
-        leads_interesados: interesados.count,
+        leads_interesados: interesadosPeriodo.count,
         citas: {
           agendadas: citasAgendadas.count,
           realizadas: citasRealizadas.count
         },
         puntos: user?.puntos || 0,
-        conversion_rate: llamadasPeriodo.count > 0 
-          ? (contactosEfectivos.count / llamadasPeriodo.count * 100).toFixed(1)
-          : 0
+        conversion_rate: conversion.toFixed(1)
       };
     });
     

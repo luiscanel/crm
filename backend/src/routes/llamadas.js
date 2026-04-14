@@ -89,14 +89,11 @@ router.post('/', authenticateToken, (req, res) => {
     );
 
     // Assign points based on call type
+    // +1 base point for any call, +3 for effective call (includes interested)
     let puntosGanados = 1; // Base point for any call
     
     if (esEfectivo) {
-      puntosGanados += 3; // Contact effective
-    }
-    
-    if (estado === 'interesado') {
-      puntosGanados += 2; // Extra for interested
+      puntosGanados += 3; // Contact effective (includes interesados)
     }
 
     // Update user points
@@ -247,12 +244,7 @@ router.delete('/:id', authenticateToken, (req, res) => {
     if (llamada.es_contacto_efectivo) {
       puntosAActualizar += 3;
     }
-    
-    // Get empresa estado to check if was interesado
-    const empresa = db.get('SELECT estado FROM empresas WHERE id = ?', [llamada.empresa_id]);
-    if (empresa && empresa.estado === 'interesado') {
-      puntosAActualizar += 2;
-    }
+    // Note: Interested state bonus was removed - it's now included in efectivo
     
     // Delete the call
     db.run('DELETE FROM llamadas WHERE id = ?', [id]);

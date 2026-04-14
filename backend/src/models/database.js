@@ -295,6 +295,54 @@ function initDatabase() {
     console.log('✅ Default badges created');
   }
 
+  // Insert default retos if not exists OR update with harder values (NO POINTS - just tracking)
+  const existingRetos = db.prepare('SELECT COUNT(*) as count FROM retos').get();
+  if (existingRetos.count === 0) {
+    const retos = [
+      ['r1', 'diario', 'Llamadas diarias', 25, 0, null, null, 1],
+      ['r2', 'semanal', 'Contactos semanales', 15, 0, null, null, 1],
+      ['r3', 'mensual', 'Llamadas mensuales', 100, 0, null, null, 1],
+    ];
+    const insertReto = db.prepare('INSERT INTO retos (id, tipo, objetivo, meta, puntos, fecha_inicio, fecha_fin, activo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+    retos.forEach(r => insertReto.run(...r));
+    console.log('✅ Default retos created');
+  } else {
+    // Update with harder values and no points
+    db.prepare("UPDATE retos SET meta = 25, puntos = 0 WHERE id = 'r1'").run();
+    db.prepare("UPDATE retos SET meta = 15, puntos = 0 WHERE id = 'r2'").run();
+    db.prepare("UPDATE retos SET meta = 100, puntos = 0 WHERE id = 'r3'").run();
+    console.log('✅ Retos updated - no points for challenges');
+  }
+
+  // Insert default premios if not exists OR update existing with new values
+  const existingPremios = db.prepare('SELECT COUNT(*) as count FROM premios').get();
+  if (existingPremios.count === 0) {
+    const premios = [
+      ['p1', 'Café gratis', 'Un café en tu cafetería favorita', 'coffee', 'digital', 350, 10, 1],
+      ['p2', 'Almuerzo completo', 'Un almuerzo en restaurante', 'utensils', 'digital', 500, 10, 1],
+      ['p3', 'Cine tickets', '2 entradas de cine', 'film', 'digital', 750, 5, 1],
+      ['p4', 'Gasolina Q.200', 'Bono de combustible', 'car', 'digital', 800, 5, 1],
+      ['p5', 'Día libre', 'Un día de descanso pagado', 'sun', 'especial', 1500, 2, 1],
+      ['p6', 'Amazon Gift Card Q.150', 'Tarjeta de regalo', 'gift', 'digital', 1000, 5, 1],
+      ['p7', 'Auriculares Bluetooth', 'Auriculares Sony/Samsung', 'headphones', 'fisico', 2000, 3, 1],
+      ['p8', 'Smartwatch', 'Reloj inteligente', 'watch', 'fisico', 3500, 2, 1],
+    ];
+    const insertPremio = db.prepare('INSERT INTO premios (id, nombre, descripcion, icono, tipo, puntos_requeridos, cantidad_disponible, activo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+    premios.forEach(p => insertPremio.run(...p));
+    console.log('✅ Default premios created');
+  } else {
+    // Update existing premios with new values (using raw db methods)
+    db.prepare("UPDATE premios SET puntos_requeridos = 350, nombre = 'Café gratis', icono = 'coffee' WHERE id = 'p1'").run();
+    db.prepare("UPDATE premios SET puntos_requeridos = 500, nombre = 'Almuerzo completo', icono = 'utensils' WHERE id = 'p2'").run();
+    db.prepare("UPDATE premios SET puntos_requeridos = 750, nombre = 'Cine tickets', icono = 'film' WHERE id = 'p3'").run();
+    db.prepare("UPDATE premios SET puntos_requeridos = 800, nombre = 'Gasolina Q.200', icono = 'car' WHERE id = 'p4'").run();
+    db.prepare("UPDATE premios SET puntos_requeridos = 1500, nombre = 'Día libre', icono = 'sun' WHERE id = 'p5'").run();
+    db.prepare("UPDATE premios SET puntos_requeridos = 1000, nombre = 'Amazon Gift Card Q.150', icono = 'gift' WHERE id = 'p6'").run();
+    db.prepare("UPDATE premios SET puntos_requeridos = 2000, nombre = 'Auriculares Bluetooth', icono = 'headphones' WHERE id = 'p7'").run();
+    db.prepare("UPDATE premios SET puntos_requeridos = 3500, nombre = 'Smartwatch', icono = 'watch' WHERE id = 'p8'").run();
+    console.log('✅ Premios updated with new values');
+  }
+
   // Return wrapper with same interface as before
   return {
     get: (sql, params = []) => {

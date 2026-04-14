@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-gray-50 text-gray-900 font-sans;
   }
 }
 
@@ -16,7 +16,7 @@
   .btn-primary {
     @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
   }
-  
+
   .btn-secondary {
     @apply bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-400;
   }
@@ -24,76 +24,141 @@
   .btn-danger {
     @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
   }
-  
+
+  /* Cards mejorado */
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-4;
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-5;
+    @apply transition-all duration-300;
   }
   
+  .card-hover {
+    @apply hover:shadow-lg hover:-translate-y-0.5 cursor-pointer;
+  }
+
   .card-grid {
     @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4;
   }
-  
+
   .input {
     @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all;
   }
-  
+
   .label {
     @apply block text-sm font-medium text-gray-700 mb-1;
   }
-  
+
   .table-container {
-    @apply overflow-x-auto rounded-lg border border-gray-200;
+    @apply overflow-x-auto rounded-xl border border-gray-200 bg-white;
   }
-  
+
   .table {
-    @apply min-w-full divide-y divide-gray-200;
+    @apply min-w-full divide-y divide-gray-100;
   }
-  
+
   .table th {
-    @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50;
+    @apply px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50;
   }
-  
+
   .table td {
-    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900;
+    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-700;
   }
-  
+
   .table tbody tr {
-    @apply hover:bg-gray-50;
+    @apply hover:bg-gray-50 transition-colors;
   }
-  
+
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
-  
+
   .badge-success {
-    @apply bg-green-100 text-green-800;
+    @apply bg-green-100 text-green-700;
   }
-  
+
   .badge-warning {
-    @apply bg-yellow-100 text-yellow-800;
+    @apply bg-yellow-100 text-yellow-700;
   }
-  
+
   .badge-danger {
-    @apply bg-red-100 text-red-800;
+    @apply bg-red-100 text-red-700;
   }
-  
+
   .badge-info {
-    @apply bg-blue-100 text-blue-800;
+    @apply bg-primary-100 text-primary-700;
   }
-  
+
   .badge-gray {
-    @apply bg-gray-100 text-gray-800;
+    @apply bg-gray-100 text-gray-600;
+  }
+
+  .badge-accent {
+    @apply bg-accent-100 text-accent-700;
   }
 }
 
+/* Stats Cards mejorado */
 .stat-card {
-  @apply bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow;
+  @apply bg-white rounded-2xl p-6 shadow-sm border border-gray-100;
+  @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
 }
 
+.stat-card-icon {
+  @apply w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm;
+}
+
+/* Navigation */
 .nav-link {
-  @apply flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors;
+  @apply flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-xl transition-all duration-200;
 }
 
 .nav-link.active {
-  @apply bg-primary-50 text-primary-600 border-r-4 border-primary-600;
+  @apply bg-primary-50 text-primary-600 font-medium;
+  @apply border-l-4 border-primary-600;
+}
+
+/* Header Hero */
+.hero-header {
+  @apply bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 text-white;
+  @apply shadow-lg;
+}
+
+/* Empty State */
+.empty-state {
+  @apply flex flex-col items-center justify-center py-16 px-4 text-center;
+}
+
+.empty-state-icon {
+  @apply w-20 h-20 text-gray-300 mb-4;
+}
+
+.empty-state-title {
+  @apply text-xl font-semibold text-gray-700 mb-2;
+}
+
+.empty-state-description {
+  @apply text-sm text-gray-500 max-w-sm;
+}
+
+/* Progress bar mejorado */
+.progress-bar {
+  @apply h-3 w-full bg-gray-100 rounded-full overflow-hidden;
+}
+
+.progress-bar-fill {
+  @apply h-full rounded-full transition-all duration-500;
+  @apply bg-gradient-to-r from-primary-500 to-primary-600;
+}
+
+/* Tabs */
+.tabs {
+  @apply flex gap-1 p-1 bg-gray-100 rounded-xl;
+}
+
+.tab {
+  @apply flex-1 px-4 py-2 text-sm font-medium text-gray-600 rounded-lg;
+  @apply hover:text-gray-900 transition-all;
+}
+
+.tab.active {
+  @apply bg-white text-primary-600 shadow-sm;
 }

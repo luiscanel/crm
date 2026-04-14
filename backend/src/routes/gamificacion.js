@@ -77,6 +77,12 @@ router.post('/badges/check', authenticateToken, (req, res) => {
     const db = req.db;
     const userId = req.user.id;
     
+    // Migration: fix badge types if needed (run once per request is fine - it's a simple update)
+    db.run("UPDATE badges SET tipo = 'llamada' WHERE tipo = 'llamadas'");
+    db.run("UPDATE badges SET tipo = 'contacto' WHERE tipo = 'contactos'");
+    db.run("UPDATE badges SET tipo = 'cita' WHERE tipo = 'citas'");
+    db.run("UPDATE badges SET tipo = 'empresa' WHERE tipo = 'empresas'");
+    
     // Get user stats
     const totalLlamadas = db.get('SELECT COUNT(*) as count FROM llamadas WHERE vendedor_id = ?', [userId]);
     const citasAgendadas = db.get('SELECT COUNT(*) as count FROM citas WHERE vendedor_id = ?', [userId]);
@@ -124,19 +130,19 @@ router.post('/badges/check', authenticateToken, (req, res) => {
       let earned = false;
       
       switch (badge.tipo) {
-        case 'llamadas':
+        case 'llamada':
           earned = totalLlamadas.count >= badge.requisito;
           break;
-        case 'citas':
+        case 'cita':
           earned = citasAgendadas.count >= badge.requisito;
           break;
         case 'conversion':
           earned = conversionRate >= badge.requisito;
           break;
-        case 'contactos':
+        case 'contacto':
           earned = (contactosEfectivos?.count || 0) >= badge.requisito;
           break;
-        case 'empresas':
+        case 'empresa':
           earned = (empresasCreadas?.count || 0) >= badge.requisito;
           break;
         case 'puntos':
@@ -614,19 +620,19 @@ router.get('/dashboard-stats', authenticateToken, (req, res) => {
     let userProgress = 0;
     let progressLabel = '';
     if (nextBadge) {
-      if (nextBadge.tipo === 'llamadas') {
+      if (nextBadge.tipo === 'llamada') {
         userProgress = db.get('SELECT COUNT(*) as count FROM llamadas WHERE vendedor_id = ?', [userId]).count;
         progressLabel = `${userProgress}/${nextBadge.requisito} llamadas`;
-      } else if (nextBadge.tipo === 'contactos') {
+      } else if (nextBadge.tipo === 'contacto') {
         userProgress = db.get('SELECT COUNT(*) as count FROM llamadas WHERE vendedor_id = ? AND es_contacto_efectivo = 1', [userId]).count;
         progressLabel = `${userProgress}/${nextBadge.requisito} contactos`;
-      } else if (nextBadge.tipo === 'citas') {
+      } else if (nextBadge.tipo === 'cita') {
         userProgress = db.get('SELECT COUNT(*) as count FROM citas WHERE vendedor_id = ?', [userId]).count;
         progressLabel = `${userProgress}/${nextBadge.requisito} citas`;
       } else if (nextBadge.tipo === 'puntos') {
         userProgress = db.get('SELECT puntos FROM users WHERE id = ?', [userId]).puntos;
         progressLabel = `${userProgress}/${nextBadge.requisito} puntos`;
-      } else if (nextBadge.tipo === 'empresas') {
+      } else if (nextBadge.tipo === 'empresa') {
         userProgress = db.get('SELECT COUNT(*) as count FROM empresas WHERE vendedor_id = ?', [userId]).count;
         progressLabel = `${userProgress}/${nextBadge.requisito} empresas`;
       } else if (nextBadge.tipo === 'conversion') {
