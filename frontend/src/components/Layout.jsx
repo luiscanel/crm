@@ -2,14 +2,19 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   LayoutDashboard, Users, Building2, Phone, Calendar, 
-  Trophy, FileText, LogOut, Menu, X, CheckSquare, LayoutGrid, MessageSquare
+  Trophy, FileText, LogOut, Menu, X, CheckSquare, LayoutGrid, MessageSquare, Settings
 } from 'lucide-react';
 import { useState } from 'react';
+import Tour, { TourButton } from './Tour';
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(() => {
+    // Auto-abrir tour si no se ha visto
+    return !localStorage.getItem('tour_seen');
+  });
 
   const handleLogout = () => {
     logout();
@@ -19,12 +24,12 @@ export default function Layout() {
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/empresas', icon: Building2, label: 'Empresas' },
-    { to: '/kanban', icon: LayoutGrid, label: 'Pipeline' },
+    { to: '/kanban', icon: LayoutGrid, label: 'Pipeline', id: 'pipeline-link' },
     { to: '/plantillas', icon: MessageSquare, label: 'Plantillas' },
-    { to: '/llamadas', icon: Phone, label: 'Llamadas' },
-    { to: '/citas', icon: Calendar, label: 'Citas' },
+    { to: '/llamadas', icon: Phone, label: 'Llamadas', id: 'llamadas-link' },
+    { to: '/citas', icon: Calendar, label: 'Citas', id: 'citas-link' },
     { to: '/tareas', icon: CheckSquare, label: 'Tareas' },
-    { to: '/gamificacion', icon: Trophy, label: 'Gamificación' },
+    { to: '/gamificacion', icon: Trophy, label: 'Gamificación', id: 'gamificacion-link' },
   ];
 
   if (user?.role === 'admin' || user?.role === 'supervisor') {
@@ -33,7 +38,8 @@ export default function Layout() {
   }
   
   if (user?.role === 'admin') {
-    navItems.push({ to: '/solicitudes-premios', icon: Trophy, label: 'Solicitudes Premios' });
+    navItems.push({ to: '/solicitudes-premios', icon: Trophy, label: 'Premios' });
+    navItems.push({ to: '/configuracion', icon: Settings, label: 'Configuración' });
   }
 
   return (
@@ -47,7 +53,9 @@ export default function Layout() {
       )}
       
       {/* Sidebar */}
-      <aside className={`
+      <aside 
+        id="sidebar"
+        className={`
         fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 
         transform transition-transform duration-200 lg:transform-none
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -55,8 +63,8 @@ export default function Layout() {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-6 border-b border-gray-100">
-            <h1 className="text-xl font-bold text-primary-600">Teknao CRM</h1>
-            <p className="text-sm text-gray-500 mt-1">Gestión de Ventas B2B</p>
+            <h1 className="text-2xl font-bold text-primary-600">Teknao CRM</h1>
+            <p className="text-sm text-gray-500 mt-1">Gestión de Ventas</p>
           </div>
 
           {/* Navigation */}
@@ -66,6 +74,7 @@ export default function Layout() {
                 key={item.to}
                 to={item.to}
                 onClick={() => setSidebarOpen(false)}
+                id={item.id || (item.to === '/empresas' ? 'empresas-link' : undefined)}
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               >
                 <item.icon size={20} />
@@ -73,44 +82,61 @@ export default function Layout() {
               </NavLink>
             ))}
           </nav>
+
+          {/* User info */}
+          <div className="p-4 border-t border-gray-100">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold">
+                {user?.name?.charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
+                <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-red-600 transition-colors"
+                title="Cerrar sesión"
+              >
+                <LogOut size={18} />
+              </button>
+            </div>
+          </div>
         </div>
       </aside>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header with user info */}
-        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
+            className="lg:hidden p-2 rounded-xl hover:bg-gray-100"
           >
             {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
           
-          {/* User info - top right */}
-          <div className="flex items-center gap-3 ml-auto">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-              <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+          <div />
+          
+          {/* Puntos en header */}
+          {user?.puntos > 0 && (
+            <div id="header-puntos" className="flex items-center gap-2 px-4 py-2 bg-accent-50 rounded-xl border border-accent-100">
+              <Trophy size={18} className="text-accent-600" />
+              <span className="text-sm font-bold text-accent-700">{user.puntos}</span>
+              <span className="text-xs text-accent-600">pts</span>
             </div>
-            <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-medium">
-              {user?.name?.charAt(0)}
-            </div>
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-red-600 transition-colors"
-              title="Cerrar sesión"
-            >
-              <LogOut size={20} />
-            </button>
-          </div>
+          )}
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 lg:p-8 overflow-auto">
+        <main className="flex-1 p-6 lg:p-8 overflow-auto">
           <Outlet />
         </main>
       </div>
+
+      {/* Tour Guiado */}
+      <TourButton onClick={() => setTourOpen(true)} />
+      <Tour isOpen={tourOpen} onClose={() => setTourOpen(false)} onStart={() => setTourOpen(true)} />
     </div>
   );
 }

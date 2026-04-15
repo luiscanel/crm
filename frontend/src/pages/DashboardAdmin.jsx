@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { 
   Phone, Building2, Users, Calendar, TrendingUp, TrendingDown,
-  Target, Award, BarChart3, ArrowUp, ArrowDown, PieChart, Database, Trash2, RefreshCw
+  Target, Award, BarChart3, ArrowUp, ArrowDown, PieChart, Database, Trash2, RefreshCw, AlertCircle
 } from 'lucide-react';
 
 export default function DashboardAdmin() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [periodo, setPeriodo] = useState('semana');
   const [vendedoresData, setVendedoresData] = useState([]);
   const [comparacion, setComparacion] = useState(null);
@@ -16,10 +18,12 @@ export default function DashboardAdmin() {
   const [vendedorDiario, setVendedorDiario] = useState([]);
   const [seedLoading, setSeedLoading] = useState(false);
   const [seedStatus, setSeedStatus] = useState(null);
+  const [seguimientoData, setSeguimientoData] = useState([]);
 
   useEffect(() => {
     loadData();
     loadSeedStatus();
+    loadSeguimiento();
   }, [periodo]);
 
   const loadData = async () => {
@@ -53,6 +57,16 @@ export default function DashboardAdmin() {
       setSeedStatus(status);
     } catch (error) {
       console.error('Error:', error);
+    }
+  };
+
+  const loadSeguimiento = async () => {
+    try {
+      const data = await api.getSeguimiento();
+      console.log('Seguimiento loaded:', data);
+      setSeguimientoData(data || []);
+    } catch (error) {
+      console.error('Error loading seguimiento:', error);
     }
   };
 
@@ -400,6 +414,44 @@ export default function DashboardAdmin() {
               <p className="text-sm text-gray-500">Interesados</p>
               <p className="text-2xl font-bold text-orange-600">{vendedorSeleccionado.leads_interesados}</p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Seguimiento Requerido - Todos los vendedores */}
+      {seguimientoData.length > 0 && (
+        <div className="card border-2 border-red-200 bg-red-50 mt-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+            Seguimiento Requerido - Todos los Vendedores ({seguimientoData.length})
+          </h3>
+          <div className="space-y-3">
+            {seguimientoData.slice(0, 10).map((empresa) => (
+              <div 
+                key={empresa.id} 
+                onClick={() => navigate(`/empresas/${empresa.id}`)}
+                className="flex items-center justify-between p-3 bg-white rounded-lg border border-red-100 cursor-pointer hover:bg-red-50"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <Building2 className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{empresa.nombre}</p>
+                    <p className="text-xs text-gray-500">
+                      {empresa.vendedor_nombre} • {empresa.fecha_seguimiento ? new Date(empresa.fecha_seguimiento).toLocaleDateString('es') : 'Sin fecha'}
+                    </p>
+                  </div>
+                </div>
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  empresa.estado === 'interesado' ? 'bg-yellow-100 text-yellow-700' :
+                  empresa.estado === 'seguimiento' ? 'bg-blue-100 text-blue-700' :
+                  'bg-gray-100 text-gray-700'
+                }`}>
+                  {empresa.estado}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       )}

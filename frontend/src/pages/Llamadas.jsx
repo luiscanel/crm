@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
-import { Phone, Plus, Search, Building2, Clock, CheckCircle, XCircle, HelpCircle, Trash2, FileText } from 'lucide-react';
+import { Phone, Plus, Search, Building2, Clock, CheckCircle, XCircle, HelpCircle, Trash2, FileText, Award } from 'lucide-react';
 
 const estadosLlamada = [
   { value: 'no_contesto', label: 'No Contestó', icon: XCircle, color: 'text-gray-600' },
@@ -48,7 +48,8 @@ export default function Llamadas() {
     empresa_id: '',
     contacto_id: '',
     estado: '',
-    observaciones: ''
+    observaciones: '',
+    suggested_estado: ''
   });
 
   useEffect(() => {
@@ -90,13 +91,25 @@ export default function Llamadas() {
         return;
       }
       
+      // Si se sugirió cambiar el estado de la empresa, actualizar
+      if (formData.suggested_estado && formData.empresa_id) {
+        await api.updateEmpresa(formData.empresa_id, { estado: formData.suggested_estado });
+      }
+      
       if (result.puntos_ganados) {
-        alert(`Llamada registrada! +${result.puntos_ganados} puntos`);
+        // Verificar insignias después de ganar puntos
+        const badgeResult = await api.checkBadges();
+        if (badgeResult.new_badges && badgeResult.new_badges.length > 0) {
+          const badgesMsg = badgeResult.new_badges.map(b => `🏆 ${b.nombre}`).join(', ');
+          alert(`Llamada registrada! +${result.puntos_ganados} puntos\n\n🎉 ¡Nueva(s) insignia(s): ${badgesMsg}!`);
+        } else {
+          alert(`Llamada registrada! +${result.puntos_ganados} puntos`);
+        }
         refreshUser();
       }
       
       setShowModal(false);
-      setFormData({ empresa_id: '', contacto_id: '', estado: '', observaciones: '' });
+      setFormData({ empresa_id: '', contacto_id: '', estado: '', observaciones: '', suggested_estado: '' });
       loadData();
     } catch (error) {
       console.error('Error:', error);
@@ -351,6 +364,30 @@ export default function Llamadas() {
                 </div>
               </div>
 
+              {/* Sugerencia de cambio de estado de empresa */}
+              {formData.empresa_id && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-800 mb-2">💡 ¿Cambiar estado de la empresa?</p>
+                      <select
+                        value={formData.suggested_estado || ''}
+                        onChange={(e) => setFormData({ ...formData, suggested_estado: e.target.value })}
+                        className="input text-sm"
+                      >
+                        <option value="">Sin cambios</option>
+                        <option value="nuevo">Nuevo</option>
+                        <option value="contactado">Contactado</option>
+                        <option value="interesado">Interesado</option>
+                        <option value="seguimiento">Seguimiento</option>
+                        <option value="cerrado">Cerrado</option>
+                      </select>
+                      <p className="text-xs text-blue-600 mt-1">Esto es opcional, puedes cambiar el estado después</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="label">Observaciones</label>
                 <textarea
@@ -364,7 +401,7 @@ export default function Llamadas() {
 
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm text-gray-600">
-                  <strong>Puntos:</strong> +1 por llamada, +3 por contacto efectivo, +5 por interesado
+                  <strong>Puntos:</strong> +1 por llamada, +3 por llamada efectiva (contacto/interesado)
                 </p>
               </div>
 

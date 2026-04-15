@@ -17,13 +17,13 @@ const PORT = process.env.PORT || 3001;
 // Security middleware
 app.use(helmet());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: { success: false, error: 'Demasiadas solicitudes, intenta más tarde' }
-});
-app.use('/api/', limiter);
+// Rate limiting - deshabilitado para desarrollo
+//const limiter = rateLimit({
+//  windowMs: 15 * 60 * 1000, // 15 minutes
+//  max: 100, // limit each IP to 100 requests per windowMs
+//  message: { success: false, error: 'Demasiadas solicitudes, intenta más tarde' }
+//});
+//app.use('/api/', limiter);
 
 // CORS - allow localhost and Vercel/Railway domains
 const corsOptions = {
@@ -45,12 +45,6 @@ app.use(express.urlencoded({ extended: true }));
 // Request logging
 app.use(requestTimer);
 
-// Make db available to routes
-app.use((req, res, next) => {
-  req.db = req.app.locals.db;
-  next();
-});
-
 // Initialize database and start server
 async function startServer() {
   try {
@@ -58,6 +52,12 @@ async function startServer() {
     const db = initDatabase();
     app.locals.db = db;
     logger.success('Database connected');
+
+    // Make db available to routes - debe estar DESPUES de inicializar db
+    app.use((req, res, next) => {
+      req.db = req.app.locals.db;
+      next();
+    });
     
     // Import routes
     const authRoutes = require('./routes/auth');
@@ -71,6 +71,7 @@ async function startServer() {
     const plantillasRoutes = require('./routes/plantillas');
     const tareasRoutes = require('./routes/tareas');
     const adminRoutes = require('./routes/admin');
+    const settingsRoutes = require('./routes/settings');
 
     // API Routes
     app.use('/api/auth', authRoutes);
@@ -84,6 +85,7 @@ async function startServer() {
     app.use('/api/plantillas', plantillasRoutes);
     app.use('/api/tareas', tareasRoutes);
     app.use('/api/admin', adminRoutes);
+    app.use('/api/settings', settingsRoutes);
 
     // Health check
     app.get('/api/health', (req, res) => {

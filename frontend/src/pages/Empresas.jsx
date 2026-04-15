@@ -119,11 +119,15 @@ export default function Empresas() {
       industria: empresa.industria || '',
       tamano: empresa.tamano || '',
       ubicacion: empresa.ubicacion || '',
+      telefono: empresa.telefono || '',
+      email: empresa.email || '',
+      sitio_web: empresa.sitio_web || '',
       estado: empresa.estado || 'nuevo',
       vendedor_id: empresa.vendedor_id || '',
-      fecha_cita: '',
-      tipo_cita: 'reunion',
-      notas_cita: ''
+      fecha_cita: empresa.fecha_cita || '',
+      tipo_cita: empresa.tipo_cita || 'reunion',
+      notas_cita: empresa.notas_cita || '',
+      fecha_seguimiento: empresa.fecha_seguimiento || ''
     });
     setShowModal(true);
   };
@@ -345,7 +349,7 @@ export default function Empresas() {
             className="btn btn-primary flex items-center gap-2"
           >
             <Plus size={20} />
-            Nueva Empresa
+            <span id="empresas-add">Nueva Empresa</span>
           </button>
           <button
             onClick={exportToCSV}
@@ -533,11 +537,20 @@ export default function Empresas() {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">
-              {editingId ? 'Editar Empresa' : 'Nueva Empresa'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="bg-white rounded-xl w-full max-w-lg p-6 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between mb-4 flex-shrink-0">
+              <h2 className="text-xl font-bold text-gray-900">
+                {editingId ? 'Editar Empresa' : 'Nueva Empresa'}
+              </h2>
+              <button 
+                type="button"
+                onClick={() => { setShowModal(false); setEditingId(null); setFormData({ nombre: '', industria: '', tamano: '', ubicacion: '', telefono: '', email: '', sitio_web: '', estado: 'nuevo', vendedor_id: '', fecha_cita: '', tipo_cita: 'reunion', notas_cita: '', fecha_seguimiento: '' }); }}
+                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto flex-1 pr-2">
               <div>
                 <label className="label">Nombre *</label>
                 <input
@@ -685,7 +698,7 @@ export default function Empresas() {
                   </div>
                 </>
               )}
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-4 flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => { setShowModal(false); setEditingId(null); setFormData({ nombre: '', industria: '', tamano: '', ubicacion: '', telefono: '', email: '', sitio_web: '', estado: 'nuevo', vendedor_id: '', fecha_cita: '', tipo_cita: 'reunion', notas_cita: '', fecha_seguimiento: '' }); }}

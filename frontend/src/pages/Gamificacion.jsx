@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
-import { Trophy, Star, Target, Award, Medal, Crown, Zap, CheckCircle, Gift, ShoppingBag, Phone, Calendar, Users, Building2, Handshake, TrendingUp } from 'lucide-react';
+import { Trophy, Star, Target, Award, Medal, Crown, Zap, CheckCircle, Gift, ShoppingBag, Phone, Calendar, Users, Building2, Handshake, TrendingUp, Coffee, Utensils, Film, Car, Sun, Watch, Headphones } from 'lucide-react';
 
 export default function Gamificacion() {
   const { user, refreshUser } = useAuth();
@@ -161,7 +161,7 @@ export default function Gamificacion() {
                       <p className="font-medium text-gray-900">{reto.objetivo}</p>
                       <p className="text-sm text-gray-500 capitalize">{reto.tipo}</p>
                     </div>
-                    <span className="badge badge-warning">+{reto.puntos} pts</span>
+                    {reto.puntos > 0 && <span className="badge badge-warning">+{reto.puntos} pts</span>}
                   </div>
                   
                   <div className="flex items-center gap-3">
@@ -322,11 +322,14 @@ export default function Gamificacion() {
               <div key={premio.id} className={`border-2 rounded-lg p-4 ${premio.puede_canjear ? 'border-green-500 bg-green-50' : 'border-gray-200 opacity-60'}`}>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="text-3xl">
-                    {premio.icono === 'pizza' && '🍕'}
-                    {premio.icono === 'cine' && '🎬'}
-                    {premio.icono === 'desayuno' && '☕'}
-                    {premio.icono === 'tarjeta' && '🎁'}
-                    {premio.icono === 'lunch' && '🛒'}
+                    {premio.icono === 'coffee' && '☕'}
+                    {premio.icono === 'utensils' && '🍽️'}
+                    {premio.icono === 'film' && '🎬'}
+                    {premio.icono === 'car' && '⛽'}
+                    {premio.icono === 'sun' && '☀️'}
+                    {premio.icono === 'gift' && '🎁'}
+                    {premio.icono === 'headphones' && '🎧'}
+                    {premio.icono === 'watch' && '⌚'}
                     {!premio.icono && '🎯'}
                   </div>
                   <div>
@@ -408,11 +411,14 @@ export default function Gamificacion() {
               <div key={premio.id} className="border-2 border-yellow-400 bg-yellow-50 rounded-lg p-4">
                 <div className="flex items-center gap-3">
                   <div className="text-3xl">
-                    {premio.icono === 'pizza' && '🍕'}
-                    {premio.icono === 'cine' && '🎬'}
-                    {premio.icono === 'desayuno' && '☕'}
-                    {premio.icono === 'tarjeta' && '🎁'}
-                    {premio.icono === 'lunch' && '🛒'}
+                    {premio.icono === 'coffee' && '☕'}
+                    {premio.icono === 'utensils' && '🍽️'}
+                    {premio.icono === 'film' && '🎬'}
+                    {premio.icono === 'car' && '⛽'}
+                    {premio.icono === 'sun' && '☀️'}
+                    {premio.icono === 'gift' && '🎁'}
+                    {premio.icono === 'headphones' && '🎧'}
+                    {premio.icono === 'watch' && '⌚'}
                     {!premio.icono && '🎯'}
                   </div>
                   <div>

@@ -24,11 +24,14 @@ function validatePhone(phone) {
 function validateEmpresa(data, isUpdate = false) {
   const errors = [];
   
-  if (!data.nombre || data.nombre.trim().length < 2) {
-    errors.push('El nombre debe tener al menos 2 caracteres');
-  }
-  if (data.nombre && data.nombre.length > 200) {
-    errors.push('El nombre no puede exceder 200 caracteres');
+  // Solo validar nombre si se está enviando
+  if (data.nombre !== undefined) {
+    if (!data.nombre || data.nombre.trim().length < 2) {
+      errors.push('El nombre debe tener al menos 2 caracteres');
+    }
+    if (data.nombre && data.nombre.length > 200) {
+      errors.push('El nombre no puede exceder 200 caracteres');
+    }
   }
   if (data.email && !validateEmail(data.email)) {
     errors.push('Email inválido');
@@ -108,8 +111,14 @@ router.get('/', authenticateToken, (req, res) => {
 
     const empresas = db.all(query, params);
     
+    // Get contactos for each empresa
+    const empresasWithContactos = empresas.map(empresa => {
+      const contactos = db.all('SELECT id, nombre, email, telefono, cargo FROM contactos WHERE empresa_id = ?', [empresa.id]);
+      return { ...empresa, contactos };
+    });
+    
     res.json({
-      data: empresas,
+      data: empresasWithContactos,
       pagination: {
         total,
         page: pageNum,
@@ -205,13 +214,16 @@ router.post('/', authenticateToken, (req, res) => {
       [id, nombre, industria || '', tamano || '', ubicacion || '', telefono || '', email || '', sitio_web || '', 'nuevo', assignedVendedor]
     );
 
+    // Award 1 point for creating empresa (reduce from 5)
+    db.run('UPDATE users SET puntos = puntos + 1 WHERE id = ?', [req.user.id]);
+
     // Log activity
     db.run(
       `INSERT INTO activity_log (id, user_id, action, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?, ?)`,
-      [uuidv4(), req.user.id, 'create_empresa', 'empresa', id, `Created empresa: ${nombre}`]
+      [uuidv4(), req.user.id, 'create_empresa', 'empresa', id, `Created empresa: ${nombre} (+1 punto)`]
     );
 
-    res.status(201).json({ message: 'Empresa creada', id });
+    res.status(201).json({ message: 'Empresa creada', id, puntos_ganados: 1 });
   } catch (error) {
     console.error('Create empresa error:', error);
     res.status(500).json({ error: 'Error al crear empresa' });
@@ -256,22 +268,27 @@ router.put('/:id', authenticateToken, (req, res) => {
 
     // Auto-create cita when state changes to cita_agendada
     if (isChangingToCitaAgendada && fecha_cita) {
-      const { v4: uuidv4 } = require('uuid');
-      const citaId = uuidv4();
+      // Check if this empresa already has a pending cita - don't duplicate points
+      const citaExistente = db.get('SELECT id FROM citas WHERE empresa_id = ? AND estado = ?', [req.params.id, 'pendiente']);
       
-      db.run(
-        `INSERT INTO citas (id, empresa_id, tipo, fecha_hora, estado, notas, vendedor_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [citaId, req.params.id, tipo_cita || 'reunion', fecha_cita, 'pendiente', notas_cita || 'Cita agendada desde empresa', req.user.id]
-      );
-      
-      // Award puntos for cita from empresa
-      db.run('UPDATE users SET puntos = puntos + 10 WHERE id = ?', [req.user.id]);
-      
-      // Log
-      db.run(
-        `INSERT INTO activity_log (id, user_id, action, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?, ?)`,
-        [uuidv4(), req.user.id, 'create_cita', 'cita', citaId, `Cita automática creada para empresa ${nombre || existing.nombre} (+10 puntos)`]
-      );
+      if (!citaExistente) {
+        const { v4: uuidv4 } = require('uuid');
+        const citaId = uuidv4();
+        
+        db.run(
+          `INSERT INTO citas (id, empresa_id, tipo, fecha_hora, estado, notas, vendedor_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [citaId, req.params.id, tipo_cita || 'reunion', fecha_cita, 'pendiente', notas_cita || 'Cita agendada desde empresa', req.user.id]
+        );
+        
+        // Award puntos only if this is the FIRST cita for this empresa
+        db.run('UPDATE users SET puntos = puntos + 10 WHERE id = ?', [req.user.id]);
+        
+        // Log
+        db.run(
+          `INSERT INTO activity_log (id, user_id, action, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?, ?)`,
+          [uuidv4(), req.user.id, 'create_cita', 'cita', citaId, `Cita automática creada para empresa ${nombre || existing.nombre} (+10 puntos)`]
+        );
+      }
     }
 
     // Log activity
@@ -307,17 +324,15 @@ router.delete('/:id', authenticateToken, (req, res) => {
     
     let puntosARevertir = 0;
     
-    // Reverse puntos for each call
+    // Reverse 1 point from empresa creation
+    puntosARevertir += 1;
+    
+    // Reverse puntos for each call (now only +1 base +3 efectivo, no extra for interested)
     for (const llamada of llamadas) {
       puntosARevertir += 1; // Base point per call
       if (llamada.es_contacto_efectivo) {
         puntosARevertir += 3; // Contact effective points
       }
-    }
-    
-    // Reverse 5 puntos if empresa was interested
-    if (existing.estado === 'interesado') {
-      puntosARevertir += 5;
     }
     
     // Reverse 10 puntos if empresa was in cita_agendada (the cita gave +10 puntos)

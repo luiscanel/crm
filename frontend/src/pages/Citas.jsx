@@ -72,7 +72,8 @@ export default function Citas() {
         contacto_id: '',
         tipo: 'llamada',
         fecha_hora: '',
-        notas: ''
+        notas: '',
+        link_videollamada: ''
       });
       loadData();
     } catch (error) {
@@ -237,9 +238,11 @@ export default function Citas() {
                     href={cita.link_videollamada}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-blue-600 hover:underline mb-3"
+                    className="flex items-center gap-2 text-sm text-purple-600 hover:underline mb-3 bg-purple-50 px-3 py-2 rounded-lg border border-purple-200"
                   >
-                    <Video size={16} /> Unirse a videollamada
+                    <Video size={16} />
+                    <span className="font-medium">Unirse a Videollamada</span>
+                    <span className="text-xs text-purple-400 ml-auto">Jitsi</span>
                   </a>
                 )}
                 
@@ -278,7 +281,7 @@ export default function Citas() {
                 <label className="label">Empresa *</label>
                 <select
                   value={formData.empresa_id}
-                  onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value, contacto_id: '' })}
                   className="input"
                   required
                 >
@@ -288,6 +291,23 @@ export default function Citas() {
                   ))}
                 </select>
               </div>
+
+              {/* Selector de Contacto */}
+              {formData.empresa_id && (
+                <div>
+                  <label className="label">Contacto (opcional)</label>
+                  <select
+                    value={formData.contacto_id}
+                    onChange={(e) => setFormData({ ...formData, contacto_id: e.target.value })}
+                    className="input"
+                  >
+                    <option value="">Seleccionar contacto...</option>
+                    {empresas.find(e => e.id === formData.empresa_id)?.contactos?.map(c => (
+                      <option key={c.id} value={c.id}>{c.nombre} {c.apellido ? `- ${c.apellido}` : ''}</option>
+                    )) || []}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="label">Tipo de Cita</label>
@@ -328,20 +348,23 @@ export default function Citas() {
                   onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
                   className="input"
                   rows={3}
-                  placeholder="Tema a tratar, información relevante..."
+                  placeholder="Notas de la cita..."
                 />
               </div>
 
-              <div>
-                <label className="label">Link de Videollamada (Zoom/Meet)</label>
-                <input
-                  type="url"
-                  value={formData.link_videollamada}
-                  onChange={(e) => setFormData({ ...formData, link_videollamada: e.target.value })}
-                  className="input"
-                  placeholder="https://zoom.us/... o https://meet.google.com/..."
-                />
-              </div>
+              {/* Checkbox generar link Jitsi */}
+              {formData.tipo === 'videollamada' && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <Video className="w-5 h-5 text-purple-600" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-purple-800">Videollamada Jitsi</p>
+                      <p className="text-xs text-purple-600">Se generará un link automático para la videollamada</p>
+                    </div>
+                    <span className="text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded">Auto</span>
+                  </div>
+                </div>
+              )}
 
               <div className="bg-yellow-50 p-4 rounded-lg">
                 <p className="text-sm text-yellow-800">

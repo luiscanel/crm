@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRM Teknao - Login</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+    body { background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .login-container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 400px; }
+    .logo { text-align: center; margin-bottom: 30px; }
+    .logo h1 { color: #1a365d; font-size: 32px; font-weight: 700; }
+    .logo p { color: #718096; margin-top: 5px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; color: #4a5568; margin-bottom: 8px; font-weight: 500; }
+    .form-group input { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: border-color 0.3s; }
+    .form-group input:focus { outline: none; border-color: #2c5282; }
+    .btn { width: 100%; padding: 14px; background: #2c5282; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.3s; }
+    .btn:hover { background: #1a365d; }
+    .error { color: #e53e3e; font-size: 14px; text-align: center; margin-top: 10px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="logo">
+      <h1>TEKNAO</h1>
+      <p>CRM de Ventas B2B</p>
+    </div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="email" required placeholder="tu@email.com">
+      </div>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="password" required placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn">Iniciar Sesión</button>
+      <p class="error" id="error"></p>
+    </form>
+  </div>
+  <script>
+    const API_URL = window.location.origin + '/api';
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorEl = document.getElementById('error');
+      
+      try {
+        const res = await fetch(API_URL + '/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          window.location.href = 'dashboard.html';
+        } else {
+          errorEl.textContent = data.error || 'Error al iniciar sesión';
+          errorEl.style.display = 'block';
+        }
+      } catch (err) {
+        errorEl.textContent = 'Error de conexión';
+        errorEl.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -351,5 +351,32 @@ export const api = {
     fetch(`${API_URL}/admin/clear-seed`, { method: 'POST', headers: headers() }).then(res => res.json()),
 
   getSeedStatus: () =>
-    fetch(`${API_URL}/admin/seed-status`, { headers: headers() }).then(res => res.json())
+    fetch(`${API_URL}/admin/seed-status`, { headers: headers() }).then(res => res.json()),
+
+  // Settings
+  getSettings: () =>
+    fetch(`${API_URL}/settings`, { headers: headers() }).then(res => res.json()),
+
+  getSetting: (key) =>
+    fetch(`${API_URL}/settings/${key}`, { headers: headers() }).then(res => res.json()),
+
+  saveSetting: (key, value) =>
+    fetch(`${API_URL}/settings`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ key, value })
+    }).then(res => res.json()),
+
+  updateSetting: (key, value) =>
+    fetch(`${API_URL}/settings/${key}`, {
+      method: 'PUT',
+      headers: headers(),
+      body: JSON.stringify({ value })
+    }).then(res => res.json()),
+
+  deleteSetting: (key) =>
+    fetch(`${API_URL}/settings/${key}`, {
+      method: 'DELETE',
+      headers: headers()
+    }).then(res => res.json())
 };

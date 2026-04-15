@@ -101,15 +101,28 @@ router.post('/', authenticateToken, (req, res) => {
       return res.status(404).json({ error: 'Empresa no encontrada' });
     }
 
+    // Generar link de Jitsi automáticamente si es videollamada y no hay link
+    let meetingUrl = link_videollamada || '';
+    if (tipo === 'videollamada' && !meetingUrl) {
+      const meetingId = uuidv4().substring(0, 8).replace(/-/g, '');
+      meetingUrl = `https://meet.jit.si/TeknaoCRM-${meetingId}`;
+    }
+
     const id = uuidv4();
 
     db.run(
       `INSERT INTO citas (id, empresa_id, vendedor_id, contacto_id, tipo, fecha_hora, estado, notas, link_videollamada) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, empresa_id, req.user.id, contacto_id || null, tipo, fecha_hora, 'pendiente', notas || '', link_videollamada || '']
+      [id, empresa_id, req.user.id, contacto_id || null, tipo, fecha_hora, 'pendiente', notas || '', meetingUrl]
     );
 
-    // Assign points for scheduling cita (+10 points)
-    db.run('UPDATE users SET puntos = puntos + 10 WHERE id = ?', [req.user.id]);
+    // Check if empresa already had a pending cita - only award points if this is the FIRST cita
+    const empresaActual = db.get('SELECT estado FROM empresas WHERE id = ?', [empresa_id]);
+    const citaPrevia = db.get('SELECT id FROM citas WHERE empresa_id = ? AND estado = ?', [empresa_id, 'pendiente']);
+    
+    // Only give points if: empresa was NOT already in cita_agendada AND no previous pending cita
+    if (empresaActual.estado !== 'cita_agendada' && !citaPrevia) {
+      db.run('UPDATE users SET puntos = puntos + 10 WHERE id = ?', [req.user.id]);
+    }
 
     // Update empresa estado to "cita_agendada"
     db.run(
@@ -141,11 +154,20 @@ router.post('/', authenticateToken, (req, res) => {
 router.put('/:id', authenticateToken, (req, res) => {
   try {
     const db = req.db;
-    const { tipo, fecha_hora, estado, notas } = req.body;
+    const { tipo, fecha_hora, estado, notas, link_videollamada } = req.body;
 
     const existing = db.get('SELECT * FROM citas WHERE id = ?', [req.params.id]);
     if (!existing) {
       return res.status(404).json({ error: 'Cita no encontrada' });
+    }
+
+    // Generar link Jitsi si se cambia a videollamada y no hay link
+    let newMeetingUrl = existing.link_videollamada;
+    if (tipo === 'videollamada' && !existing.link_videollamada) {
+      const meetingId = uuidv4().substring(0, 8).replace(/-/g, '');
+      newMeetingUrl = `https://meet.jit.si/TeknaoCRM-${meetingId}`;
+    } else if (link_videollamada !== undefined) {
+      newMeetingUrl = link_videollamada;
     }
 
     db.run(`
@@ -154,9 +176,10 @@ router.put('/:id', authenticateToken, (req, res) => {
           fecha_hora = COALESCE(?, fecha_hora),
           estado = COALESCE(?, estado),
           notas = COALESCE(?, notas),
+          link_videollamada = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `, [tipo, fecha_hora, estado, notas, req.params.id]);
+    `, [tipo, fecha_hora, estado, notas, newMeetingUrl, req.params.id]);
 
     // If cita completed, assign extra points
     if (estado === 'realizada' && existing.estado !== 'realizada') {
