@@ -19,17 +19,16 @@ services:
       - crm-network
     restart: unless-stopped
 
-  # Production setup
+  # Production setup (SSL required)
   frontend-prod:
     build:
       context: ./frontend
       dockerfile: Dockerfile.prod
     container_name: crm-frontend-prod
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./ssl:/etc/nginx/ssl:ro
+      - "8080:80"
+    # volumes:
+    #   - ./ssl:/etc/nginx/ssl:ro
     environment:
       - VITE_API_URL=/api
     depends_on:
