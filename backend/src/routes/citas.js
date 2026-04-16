@@ -150,12 +150,23 @@ router.post('/', authenticateToken, async (req, res) => {
     let emailSent = false;
     let emailError = null;
     if (enviar_correo && contactoEmail) {
+      console.log('[CITA EMAIL] Sending email to:', contactoEmail);
+      console.log('[CITA EMAIL] Enviar correo:', enviar_correo);
       try {
         const settings = getSettings(db);
+        console.log('[CITA EMAIL] Settings loaded:', {
+          smtp_host: settings.smtp_host ? 'set' : 'missing',
+          smtp_user: settings.smtp_user ? 'set' : 'missing',
+          smtp_password: settings.smtp_password ? 'set' : 'missing',
+          smtp_from_email: settings.smtp_from_email
+        });
+        
         if (settings.smtp_host && settings.smtp_user && settings.smtp_password) {
           const fechaObj = new Date(fecha_hora);
           const fechaFormateada = fechaObj.toLocaleDateString('es-GT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
           const horaFormateada = fechaObj.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
+          
+          console.log('[CITA EMAIL] About to send email...');
           
           await sendEmail(
             settings,
@@ -177,9 +188,13 @@ router.post('/', authenticateToken, async (req, res) => {
             `
           );
           emailSent = true;
+          console.log('[CITA EMAIL] Email sent successfully!');
+        } else {
+          emailError = 'SMTP no configurado';
+          console.log('[CITA EMAIL] SMTP not configured');
         }
       } catch (err) {
-        console.error('Error sending cita email:', err);
+        console.error('[CITA EMAIL] Error sending cita email:', err);
         emailError = err.message;
       }
     }
