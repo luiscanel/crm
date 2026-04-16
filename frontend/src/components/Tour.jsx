@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, Play, HelpCircle, Building2, Phone, Calendar, Trophy, LayoutDashboard, Users } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Play, HelpCircle, Building2, Phone, Calendar, Trophy, LayoutDashboard, Users, MessageCircle, CheckCircle, Mail } from 'lucide-react';
 
 const tourSteps = [
   {
@@ -39,10 +39,24 @@ const tourSteps = [
   },
   {
     target: 'citas-link',
-    title: '📅 Citas y Seguimiento',
-    content: 'Agenda citas de seguimiento con tus leads interesados. Define fecha, hora, tipo (llamada/visita/reunión) y tema.',
+    title: '📅 Citas - Nuevo Flujo',
+    content: '📌 NUEVO FLUJO DE CITAS:\n\n1. Creas una cita → Queda "pendiente de aprobación"\n2. Un supervisor debe aprobar la cita\n3. Una vez aprobada, puedes enviar por WhatsApp al cliente\n4. Si la cita se aprueba, ganas +10 puntos',
     position: 'right',
     icon: Calendar
+  },
+  {
+    target: 'citas-whatsapp',
+    title: '💬 Enviar Cita por WhatsApp',
+    content: 'Una vez que tu cita es APROBADA por el supervisor, aparecerá el botón "Enviar por WhatsApp".\n\nHaz click y se abrirá WhatsApp con el mensaje de confirmación listo para enviar.',
+    position: 'right',
+    icon: MessageCircle
+  },
+  {
+    target: 'aprobacion-citas-link',
+    title: '✅ Aprobar Citas (Supervisor)',
+    content: '🛡️ PANEL DE SUPERVISOR\n\nAquí ves todas las citas pendientes de aprobación.\n\nACCIONES:\n• Revisa los detalles de cada cita\n• Aprueba o rechaza la cita\n• Al aprobar: se genera plantilla WhatsApp para copiar\n• Copia el mensaje o envíalo directo por WhatsApp\n• También puedes enviar por correo electrónico\n• Si approved → +10 puntos al vendedor',
+    position: 'right',
+    icon: CheckCircle
   },
   {
     target: 'pipeline-link',

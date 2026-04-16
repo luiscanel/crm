@@ -34,7 +34,7 @@ export default function Layout() {
 
   if (user?.role === 'admin' || user?.role === 'supervisor') {
     navItems.push({ to: '/reportes', icon: FileText, label: 'Reportes' });
-    navItems.push({ to: '/aprobacion-citas', icon: CheckCircle, label: 'Aprobar Citas', badge: true });
+    navItems.push({ to: '/aprobacion-citas', icon: CheckCircle, label: 'Aprobar Citas', badge: true, id: 'aprobacion-citas-link' });
     navItems.splice(1, 0, { to: '/usuarios', icon: Users, label: 'Usuarios' });
   }
   
@@ -75,7 +75,7 @@ export default function Layout() {
                 key={item.to}
                 to={item.to}
                 onClick={() => setSidebarOpen(false)}
-                id={item.id || (item.to === '/empresas' ? 'empresas-link' : undefined)}
+                id={item.id || (item.to === '/empresas' ? 'empresas-link' : item.to === '/citas' ? 'citas-link' : undefined)}
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               >
                 <item.icon size={20} />

@@ -11,7 +11,7 @@ router.get('/', authenticateToken, (req, res) => {
     const { empresa_id, vendedor_id, estado, fecha, estado_aprobacion } = req.query;
     
     let query = `
-      SELECT ct.*, e.nombre as empresa_nombre, c.nombre as contacto_nombre, c.telefono as contacto_telefono, u.name as vendedor_nombre
+      SELECT ct.*, e.nombre as empresa_nombre, c.nombre as contacto_nombre, c.telefono as contacto_telefono, c.email as contacto_email, u.name as vendedor_nombre
       FROM citas ct
       LEFT JOIN empresas e ON ct.empresa_id = e.id
       LEFT JOIN contactos c ON ct.contacto_id = c.id
@@ -64,7 +64,7 @@ router.get('/pendientes-aprobacion', authenticateToken, requireRole(['admin', 's
     const db = req.db;
     
     const query = `
-      SELECT ct.*, e.nombre as empresa_nombre, c.nombre as contacto_nombre, c.telefono as contacto_telefono, u.name as vendedor_nombre
+      SELECT ct.*, e.nombre as empresa_nombre, c.nombre as contacto_nombre, c.telefono as contacto_telefono, c.email as contacto_email, u.name as vendedor_nombre
       FROM citas ct
       LEFT JOIN empresas e ON ct.empresa_id = e.id
       LEFT JOIN contactos c ON ct.contacto_id = c.id

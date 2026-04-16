@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, Plus, Clock, CheckCircle, XCircle, Video, Phone, MapPin, Trash2, AlertCircle, Copy } from 'lucide-react';
+import { Calendar, Plus, Clock, CheckCircle, XCircle, Video, Phone, MapPin, Trash2, AlertCircle, Copy, MessageCircle } from 'lucide-react';
 
 const tiposCita = [
   { value: 'llamada', label: 'Llamada', icon: Phone, color: 'bg-blue-100 text-blue-600' },
@@ -114,6 +114,46 @@ export default function Citas() {
     }
   };
 
+  const sendWhatsApp = (cita) => {
+    const fecha = new Date(cita.fecha_hora);
+    const fechaStr = fecha.toLocaleDateString('es-GT', { weekday: 'long', day: 'numeric', month: 'long' });
+    const horaStr = fecha.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
+    
+    const tipoLabel = tiposCita.find(t => t.value === cita.tipo)?.label || cita.tipo;
+    
+    let mensaje = `📅 *Confirmación de Cita*%0A%0A`;
+    mensaje += `Hola *${cita.contacto_nombre || 'Estimado'}*,%0A%0A`;
+    mensaje += `Le confirmamos su cita con *${cita.empresa_nombre}*.%0A%0A`;
+    mensaje += `📅 *Fecha:* ${fechaStr}%0A`;
+    mensaje += `⏰ *Hora:* ${horaStr}%0A`;
+    mensaje += `📋 *Tipo:* ${tipoLabel}%0A%0A`;
+    
+    if (cita.link_videollamada) {
+      mensaje += `🔗 *Enlace:* ${cita.link_videollamada}%0A%0A`;
+    }
+    
+    if (cita.notas) {
+      mensaje += `📝 *Notas:* ${cita.notas}%0A%0A`;
+    }
+    
+    mensaje += `Por favor confirme su asistencia.%0A%0A`;
+    mensaje += `Saludos,%0A*Equipo Teknao*`;
+
+    // Get telefono from contacto
+    const empresa = empresas.find(e => e.id === cita.empresa_id);
+    const contacto = empresa?.contactos?.find(c => c.id === cita.contacto_id);
+    const telefono = contacto?.telefono?.replace(/\D/g, '') || '';
+
+    if (telefono) {
+      window.open(`https://wa.me/502${telefono}?text=${mensaje}`, '_blank');
+    } else {
+      // Copy to clipboard if no phone
+      const decoded = mensaje.replace(/%0A/g, '\n').replace(/%20/g, ' ').replace(/\*/g, '');
+      navigator.clipboard.writeText(decoded);
+      alert('📋 Mensaje copiado al portapapeles. Puedes pegarlo en WhatsApp.');
+    }
+  };
+
   const getTipoIcon = (tipo) => {
     const tipoObj = tiposCita.find(t => t.value === tipo);
     if (tipoObj) {
@@ -154,6 +194,7 @@ export default function Citas() {
         <button
           onClick={() => setShowModal(true)}
           className="btn btn-primary flex items-center gap-2"
+          id="citas-whatsapp"
         >
           <Plus size={20} />
           Agendar Cita
@@ -216,6 +257,17 @@ export default function Citas() {
             {/* Notas */}
             {cita.notas && (
               <p className="text-sm text-gray-600 mb-3">{cita.notas}</p>
+            )}
+
+            {/* Botón WhatsApp para vendedor si la cita está aprobada */}
+            {cita.estado_aprobacion === 'aprobada' && user?.role === 'vendedor' && (
+              <button
+                onClick={() => sendWhatsApp(cita)}
+                className="w-full btn btn-success text-sm py-2 mb-2 flex items-center justify-center gap-2"
+              >
+                <MessageCircle size={16} />
+                Enviar por WhatsApp
+              </button>
             )}
 
             {/* Acciones según estado */}

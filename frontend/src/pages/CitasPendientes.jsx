@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircle, XCircle, Copy, Phone, Video, MapPin, Calendar, Clock, MessageCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Copy, Phone, Video, MapPin, Calendar, Clock, MessageCircle, AlertCircle, Mail } from 'lucide-react';
 
 const tiposCita = {
   llamada: { label: 'Llamada', icon: Phone, color: 'bg-blue-100 text-blue-600' },
@@ -110,6 +110,18 @@ export default function CitasPendientes() {
     const telefono = selectedCita.contacto_telefono.replace(/\D/g, '');
     const url = `https://wa.me/502${telefono}?text=${whatsappTemplate}`;
     window.open(url, '_blank');
+  };
+
+  const sendEmail = async (cita) => {
+    if (!cita.contacto_email) {
+      alert('El contacto no tiene email registrado');
+      return;
+    }
+    
+    const subject = encodeURIComponent(`📅 Confirmación de Cita - ${cita.empresa_nombre}`);
+    const body = encodeURIComponent(whatsappTemplate.replace(/%0A/g, '\n').replace(/%20/g, ' ').replace(/\*/g, ''));
+    
+    window.open(`mailto:${cita.contacto_email}?subject=${subject}&body=${body}`, '_blank');
   };
 
   const formatFecha = (fecha) => {
@@ -264,6 +276,23 @@ export default function CitasPendientes() {
                     <MessageCircle size={18} />
                     Enviar por WhatsApp
                   </button>
+
+                  {/* Botón enviar correo */}
+                  {selectedCita.contacto_email && (
+                    <button
+                      onClick={() => sendEmail(selectedCita)}
+                      className="btn btn-primary w-full mt-2 flex items-center justify-center gap-2"
+                    >
+                      <Mail size={18} />
+                      Enviar correo electrónico
+                    </button>
+                  )}
+
+                  {!selectedCita.contacto_email && !selectedCita.contacto_telefono && (
+                    <p className="text-sm text-yellow-600 mt-2 text-center">
+                      ⚠️ El contacto no tiene email ni teléfono registrado
+                    </p>
+                  )}
                 </div>
 
                 {/* Nota opcional */}
