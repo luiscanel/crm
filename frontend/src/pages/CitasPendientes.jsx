@@ -178,7 +178,10 @@ export default function CitasPendientes() {
                     <p className="text-sm text-gray-500">{cita.contacto_nombre || 'Sin contacto'}</p>
                   </div>
                   <div className={`p-2 rounded-lg ${tiposCita[cita.tipo]?.color || 'bg-gray-100'}`}>
-                    {tiposCita[cita.tipo]?.icon && <tiposCita[cita.tipo].icon className="w-4 h-4" />}
+                    {(() => {
+                      const Icon = tiposCita[cita.tipo]?.icon;
+                      return Icon ? <Icon className="w-4 h-4" /> : null;
+                    })()}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
