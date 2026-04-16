@@ -17,6 +17,13 @@ db.pragma('journal_mode = WAL');
 // Enable foreign keys
 db.pragma('foreign_keys = ON');
 
+// Add estado_aprobacion column if it doesn't exist (for existing databases)
+try {
+  db.exec("ALTER TABLE citas ADD COLUMN estado_aprobacion TEXT DEFAULT 'pendiente_aprobacion'");
+} catch (e) {
+  // Column already exists, ignore
+}
+
 // Convert PostgreSQL syntax to SQLite
 function convertToSQLite(sql) {
   // Remove ::type casting
