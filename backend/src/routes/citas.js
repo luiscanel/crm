@@ -1,6 +1,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { authenticateToken } = require('../middleware/auth');
+const { getSettings, sendEmail, sendEmailWithTemplate } = require('../services/email');
 
 const router = express.Router();
 
@@ -86,10 +87,10 @@ router.get('/upcoming', authenticateToken, (req, res) => {
 });
 
 // Create cita
-router.post('/', authenticateToken, (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const db = req.db;
-    const { empresa_id, contacto_id, tipo, fecha_hora, notas, link_videollamada } = req.body;
+    const { empresa_id, contacto_id, tipo, fecha_hora, notas, link_videollamada, enviar_correo } = req.body;
 
     if (!empresa_id || !tipo || !fecha_hora) {
       return res.status(400).json({ error: 'Empresa, tipo y fecha de cita requeridos' });
@@ -99,6 +100,14 @@ router.post('/', authenticateToken, (req, res) => {
     const empresa = db.get('SELECT id, nombre FROM empresas WHERE id = ?', [empresa_id]);
     if (!empresa) {
       return res.status(404).json({ error: 'Empresa no encontrada' });
+    }
+
+    // Get contacto info if provided
+    let contacto = null;
+    let contactoEmail = null;
+    if (contacto_id) {
+      contacto = db.get('SELECT nombre, email FROM contactos WHERE id = ?', [contacto_id]);
+      contactoEmail = contacto?.email;
     }
 
     // Generar link de Jitsi automáticamente si es videollamada y no hay link
@@ -137,12 +146,52 @@ router.post('/', authenticateToken, (req, res) => {
         `Scheduled cita with ${empresa.nombre} - Tipo: ${tipo} - Puntos: +10`]
     );
 
+    // Send email if requested
+    let emailSent = false;
+    let emailError = null;
+    if (enviar_correo && contactoEmail) {
+      try {
+        const settings = getSettings(db);
+        if (settings.smtp_host && settings.smtp_user && settings.smtp_password) {
+          const fechaObj = new Date(fecha_hora);
+          const fechaFormateada = fechaObj.toLocaleDateString('es-GT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+          const horaFormateada = fechaObj.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
+          
+          await sendEmail(
+            settings,
+            contactoEmail,
+            `📅 Cita agendada - ${empresa.nombre}`,
+            `
+              <h2>📅 Confirmación de Cita</h2>
+              <p>Hola <strong>${contacto.nombre}</strong>,</p>
+              <p>Se ha agendado una cita con <strong>${empresa.nombre}</strong>.</p>
+              <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p><strong>📅 Fecha:</strong> ${fechaFormateada}</p>
+                <p><strong>⏰ Hora:</strong> ${horaFormateada}</p>
+                <p><strong>🏢 Empresa:</strong> ${empresa.nombre}</p>
+                <p><strong>📋 Tipo:</strong> ${tipo === 'videollamada' ? 'Videollamada' : tipo === 'presencial' ? 'Presencial' : 'Llamada telefónica'}</p>
+                ${notas ? `<p><strong>📝 Notas:</strong> ${notas}</p>` : ''}
+                ${meetingUrl ? `<p><strong>🔗 Enlace:</strong> <a href="${meetingUrl}">${meetingUrl}</a></p>` : ''}
+              </div>
+              <p>Saludos,<br>Equipo Teknao CRM</p>
+            `
+          );
+          emailSent = true;
+        }
+      } catch (err) {
+        console.error('Error sending cita email:', err);
+        emailError = err.message;
+      }
+    }
+
     const userUpdated = db.get('SELECT puntos FROM users WHERE id = ?', [req.user.id]);
 
     res.status(201).json({ 
       message: 'Cita agendada', 
       id,
-      puntos_totales: userUpdated.puntos
+      puntos_totales: userUpdated.puntos,
+      email_sent: emailSent,
+      email_error: emailError
     });
   } catch (error) {
     console.error('Create cita error:', error);

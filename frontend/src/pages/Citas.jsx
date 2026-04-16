@@ -28,7 +28,8 @@ export default function Citas() {
     tipo: 'llamada',
     fecha_hora: '',
     notas: '',
-    link_videollamada: ''
+    link_videollamada: '',
+    enviar_correo: false
   });
 
   useEffect(() => {
@@ -63,7 +64,13 @@ export default function Citas() {
     try {
       const result = await api.createCita(formData);
       if (result.puntos_totales) {
-        alert(`Cita agendada! +10 puntos`);
+        let mensaje = 'Cita agendada! +10 puntos';
+        if (result.email_sent) {
+          mensaje += '\n✉️ Correo enviado al contacto';
+        } else if (result.email_error) {
+          mensaje += '\n⚠️ No se pudo enviar el correo: ' + result.email_error;
+        }
+        alert(mensaje);
         refreshUser(); // Refresh user puntos
       }
       setShowModal(false);
@@ -73,12 +80,21 @@ export default function Citas() {
         tipo: 'llamada',
         fecha_hora: '',
         notas: '',
-        link_videollamada: ''
+        link_videollamada: '',
+        enviar_correo: false
       });
       loadData();
     } catch (error) {
       console.error('Error:', error);
     }
+  };
+
+  // Get contacto email for current selection
+  const getSelectedContactoEmail = () => {
+    if (!formData.empresa_id || !formData.contacto_id) return null;
+    const empresa = empresas.find(e => e.id === formData.empresa_id);
+    const contacto = empresa?.contactos?.find(c => c.id === formData.contacto_id);
+    return contacto?.email;
   };
 
   const handleUpdateEstado = async (id, estado) => {
@@ -371,6 +387,24 @@ export default function Citas() {
                   <strong>+10 puntos</strong> al agendar una cita
                 </p>
               </div>
+
+              {/* Enviar correo checkbox */}
+              {formData.contacto_id && getSelectedContactoEmail() && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.enviar_correo}
+                      onChange={(e) => setFormData({ ...formData, enviar_correo: e.target.checked })}
+                      className="w-5 h-5 rounded text-blue-600"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-800">✉️ Enviar correo al contacto</p>
+                      <p className="text-xs text-blue-600">Se enviará a: {getSelectedContactoEmail()}</p>
+                    </div>
+                  </label>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <button
