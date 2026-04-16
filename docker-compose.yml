@@ -9,7 +9,7 @@ services:
     ports:
       - "3001:3001"
     volumes:
-      - crm-data:/app/data
+      - ./backend/data:/app/data
     env_file:
       - ./backend/.env
     environment:
@@ -41,6 +41,3 @@ services:
 networks:
   crm-network:
     driver: bridge
-
-volumes:
-  crm-data:
