@@ -4,7 +4,8 @@ const { authenticateToken, isAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Seed data - solo admin
+// Seed data - solo admin (LIMPIO - solo usuario admin)
+// Este endpoint ahora SOLO limpia data de demo, no crea nada
 router.post('/seed', authenticateToken, isAdmin, (req, res) => {
   try {
     const db = req.db;
@@ -16,142 +17,41 @@ router.post('/seed', authenticateToken, isAdmin, (req, res) => {
       return res.status(400).json({ error: 'No hay usuarios en el sistema' });
     }
     
-    // Create vendedor if not exists
-    let vendedorUser = users.find(u => u.role === 'vendedor');
-    if (!vendedorUser) {
-      const { v4: uuidv4 } = require('uuid');
-      const bcrypt = require('bcryptjs');
-      const hashedPassword = bcrypt.hashSync('vendedor123', 10);
-      const vendedorId = uuidv4();
-      db.run(
-        `INSERT INTO users (id, email, password, name, role, puntos) VALUES (?, ?, ?, ?, ?, ?)`,
-        [vendedorId, 'vendedor@teknao.com', hashedPassword, 'Vendedor Demo', 'vendedor', 0]
-      );
-      vendedorUser = { id: vendedorId };
-      console.log('Created vendedor user');
-    }
+    // NO crear vendedor demo automaticamente
+    // Solo limpiar data de prueba si existe
     
-    // Create 10 empresas
-    const empresasData = [
-      { nombre: 'Tech Solutions GT', industria: 'Tecnología', tamano: 'Mediana', ubicacion: 'Ciudad de Guatemala', telefono: '+50212345601', estado: 'nuevo' },
-      { nombre: 'Constructora Central', industria: 'Construcción', tamano: 'Grande', ubicacion: 'Antigua Guatemala', telefono: '+50212345602', estado: 'contactado' },
-      { nombre: 'AgroExport SA', industria: 'Agricultura', tamano: 'Grande', ubicacion: 'Cobán', telefono: '+50212345603', estado: 'interesado' },
-      { nombre: 'Hotel Paradise', industria: 'Hotelería', tamano: 'Mediana', ubicacion: 'Tikal', telefono: '+50212345604', estado: 'cita_agendada' },
-      { nombre: 'Banco Regional', industria: 'Finanzas', tamano: 'Corporación', ubicacion: 'Ciudad de Guatemala', telefono: '+50212345605', estado: 'seguimiento' },
-      { nombre: 'Clinica Salud', industria: 'Salud', tamano: 'Mediana', ubicacion: 'Quetzaltenango', telefono: '+50212345606', estado: 'nuevo' },
-      { nombre: 'Escuela Bilingüe', industria: 'Educación', tamano: 'Pequeña', ubicacion: 'Guatemala Sur', telefono: '+50212345607', estado: 'contactado' },
-      { nombre: 'AutoRepuestos Maya', industria: 'Automotriz', tamano: 'Mediana', ubicacion: 'Ciudad de Guatemala', telefono: '+50212345608', estado: 'interesado' },
-      { nombre: 'Restaurante Gourmet', industria: 'Restaurantes', tamano: 'Pequeña', ubicacion: 'Antigua Guatemala', telefono: '+50212345609', estado: 'nuevo' },
-      { nombre: 'Distribuidores del Norte', industria: 'Logística', tamano: 'Grande', ubicacion: 'Huehuetenango', telefono: '+50212345610', estado: 'cerrado' }
-    ];
+    // Verificar si hay empresas de demo (telefonos +50212345xxx)
+    const empresasDemo = db.all("SELECT * FROM empresas WHERE telefono LIKE '+50212345%'");
     
-    const empresasIds = [];
-    for (const emp of empresasData) {
-      const id = uuidv4();
-      empresasIds.push(id);
-      const vendedorId = vendedorUser.id;
-      
-      try {
-        db.run(
-          `INSERT INTO empresas (id, nombre, industria, tamano, ubicacion, telefono, estado, vendedor_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [id, emp.nombre, emp.industria, emp.tamano, emp.ubicacion, emp.telefono, emp.estado, vendedorId]
-        );
-      } catch(e) {
-        console.error('Error inserting empresa:', e.message);
+    if (empresasDemo.length > 0) {
+      // Eliminar empresas demo
+      for (const emp of empresasDemo) {
+        db.run('DELETE FROM empresas WHERE id = ?', [emp.id]);
       }
+      console.log('Deleted demo empresas:', empresasDemo.length);
     }
     
-    // Create 20 contactos (2 per empresa)
-    const contactosData = [];
-    const nombres = ['Juan Pérez', 'María López', 'Carlos García', 'Ana Rodríguez', 'Luis Martínez', 'Sofia Hernández', 'Diego Torres', 'Carmen Ramírez', 'Jorge Castillo', 'Laura Flores'];
-    const cargos = ['Gerente', 'Director', 'Jefe de Ventas', 'Gerente de Operaciones', 'Dueño', 'Gerente General', 'Coordinador', 'Gerente de Compras', 'Presidente', 'Gerente de Finanzas'];
-    
-    for (let i = 0; i < empresasIds.length; i++) {
-      for (let j = 0; j < 2; j++) {
-        const idx = (i * 2 + j) % nombres.length;
-        const contactoId = uuidv4();
-        contactosData.push(contactoId);
-        
-        db.run(
-          `INSERT INTO contactos (id, empresa_id, nombre, cargo, telefono, canal_preferido, nivel_interes) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [contactoId, empresasIds[i], nombres[idx], cargos[idx], `+50298765${String(i * 2 + j).padStart(3, '0')}`, 'whatsapp', 'medio']
-        );
-      }
-    }
-    
-    // Create 15 llamadas
-    const estadosLlamada = ['nuevo', 'contactado', 'interesado', 'llamada_efectiva'];
-    for (let i = 0; i < 15; i++) {
-      const empresaId = empresasIds[i % empresasIds.length];
-      const llamadaId = uuidv4();
-    const vendedorId = vendedorUser.id;
-      const esEfectivo = Math.random() > 0.5;
-      
-      db.run(
-        `INSERT INTO llamadas (id, empresa_id, vendedor_id, estado, observaciones, es_contacto_efectivo, fecha_llamada) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
-        [llamadaId, empresaId, vendedorId, estadosLlamada[i % estadosLlamada.length], `Llamada de seguimiento #${i + 1}`, esEfectivo ? 1 : 0]
-      );
-    }
-    
-    // Create 5 citas
-    const tiposCita = ['llamada', 'videollamada', 'presencial'];
-    const estadosCita = ['pendiente', 'realizada'];
-    for (let i = 0; i < 5; i++) {
-      const citaId = uuidv4();
-      const empresaId = empresasIds[i];
-    const vendedorId = vendedorUser.id;
-      
-      db.run(
-        `INSERT INTO citas (id, empresa_id, vendedor_id, tipo, fecha_hora, estado, notas) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [citaId, empresaId, vendedorId, tiposCita[i % tiposCita.length], `2026-04-${String(15 + i).padStart(2, '0')} 10:00:00`, estadosCita[i % estadosCita.length], `Cita programada #${i + 1}`]
-      );
-    }
-    
-    // Create 10 tareas
-    const prioridades = ['alta', 'media', 'baja'];
-    const estadosTarea = ['pendiente', 'en_progreso', 'completada'];
-    for (let i = 0; i < 10; i++) {
-      const tareaId = uuidv4();
-      const empresaId = empresasIds[i % empresasIds.length];
-    const vendedorId = vendedorUser.id;
-      
-      db.run(
-        `INSERT INTO tareas (id, empresa_id, vendedor_id, titulo, descripcion, prioridad, estado, fecha_limite) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [tareaId, empresaId, vendedorId, `Tarea #${i + 1}: Seguimiento`, `seguimiento requerido para empresa`, prioridades[i % prioridades.length], estadosTarea[i % estadosTarea.length], `2026-04-${String(20 + i).padStart(2, '0')}`]
-      );
-    }
-    
-    // Create 5 notas
-    for (let i = 0; i < 5; i++) {
-      const notaId = uuidv4();
-      const empresaId = empresasIds[i];
-    const vendedorId = vendedorUser.id;
-      
-      db.run(
-        `INSERT INTO notas (id, empresa_id, vendedor_id, contenido) VALUES (?, ?, ?, ?)`,
-        [notaId, empresaId, vendedorId, `Nota de seguimiento #${i + 1}: Cliente muy interesado en nuestros servicios.`]
-      );
+    // Eliminar usuario vendedor demo si existe
+    const vendedorDemo = db.get("SELECT * FROM users WHERE email = 'vendedor@teknao.com'");
+    if (vendedorDemo) {
+      db.run('DELETE FROM users WHERE id = ?', [vendedorDemo.id]);
+      console.log('Deleted vendedor demo user');
     }
     
     res.json({ 
-      success: true, 
-      message: 'Datos de prueba creados',
-      created: {
-        empresas: empresasIds.length,
-        contactos: contactosData.length,
-        llamadas: 15,
-        citas: 5,
-        tareas: 10,
-        notas: 5
-      }
+      message: 'Seed cleanup completo',
+      users_count: users.length,
+      empresas_eliminadas: empresasDemo.length,
+      vendedor_demo_eliminado: vendedorDemo ? true : false
     });
+    
   } catch (error) {
     console.error('Seed error:', error);
-    res.status(500).json({ error: 'Error al crear datos de prueba' });
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Clear seed data - solo admin
+// Clear ALL seed data - solo admin
 router.post('/clear-seed', authenticateToken, isAdmin, (req, res) => {
   try {
     const db = req.db;
