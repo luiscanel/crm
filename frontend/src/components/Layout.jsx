@@ -2,7 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   LayoutDashboard, Users, Building2, Phone, Calendar, 
-  Trophy, FileText, LogOut, Menu, X, CheckSquare, LayoutGrid, MessageSquare, Settings
+  Trophy, FileText, LogOut, Menu, X, CheckSquare, LayoutGrid, MessageSquare, Settings, CheckCircle
 } from 'lucide-react';
 import { useState } from 'react';
 import Tour, { TourButton } from './Tour';
@@ -34,6 +34,7 @@ export default function Layout() {
 
   if (user?.role === 'admin' || user?.role === 'supervisor') {
     navItems.push({ to: '/reportes', icon: FileText, label: 'Reportes' });
+    navItems.push({ to: '/aprobacion-citas', icon: CheckCircle, label: 'Aprobar Citas', badge: true });
     navItems.splice(1, 0, { to: '/usuarios', icon: Users, label: 'Usuarios' });
   }
   

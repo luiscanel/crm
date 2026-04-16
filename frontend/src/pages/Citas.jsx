@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, Plus, Clock, CheckCircle, XCircle, Video, Phone, MapPin, Trash2 } from 'lucide-react';
+import { Calendar, Plus, Clock, CheckCircle, XCircle, Video, Phone, MapPin, Trash2, AlertCircle, Copy } from 'lucide-react';
 
 const tiposCita = [
   { value: 'llamada', label: 'Llamada', icon: Phone, color: 'bg-blue-100 text-blue-600' },
@@ -13,6 +13,12 @@ const estadosCita = [
   { value: 'pendiente', label: 'Pendiente', color: 'badge-warning' },
   { value: 'realizada', label: 'Realizada', color: 'badge-success' },
   { value: 'cancelada', label: 'Cancelada', color: 'badge-danger' }
+];
+
+const estadosAprobacion = [
+  { value: 'pendiente_aprobacion', label: '⏳ Pendiente de Aprobación', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'aprobada', label: '✅ Aprobada', color: 'bg-green-100 text-green-800' },
+  { value: 'rechazada', label: '❌ Rechazada', color: 'bg-red-100 text-red-800' }
 ];
 
 export default function Citas() {
@@ -28,8 +34,7 @@ export default function Citas() {
     tipo: 'llamada',
     fecha_hora: '',
     notas: '',
-    link_videollamada: '',
-    enviar_correo: false
+    link_videollamada: ''
   });
 
   useEffect(() => {
@@ -38,13 +43,11 @@ export default function Citas() {
 
   const loadData = async () => {
     try {
-      // Backend filters empresas by vendedor automatically
       const [citasData, empresasResponse] = await Promise.all([
         api.getCitas({ estado: filterEstado }),
         api.getEmpresas()
       ]);
       
-      // Filter citas by vendedor if not admin/supervisor (API might not filter)
       let filteredCitas = citasData;
       if (user?.role === 'vendedor') {
         filteredCitas = citasData.filter(c => c.vendedor_id === user.id);
@@ -63,16 +66,7 @@ export default function Citas() {
     e.preventDefault();
     try {
       const result = await api.createCita(formData);
-      if (result.puntos_totales) {
-        let mensaje = 'Cita agendada! +10 puntos';
-        if (result.email_sent) {
-          mensaje += '\n✉️ Correo enviado al contacto';
-        } else if (result.email_error) {
-          mensaje += '\n⚠️ No se pudo enviar el correo: ' + result.email_error;
-        }
-        alert(mensaje);
-        refreshUser(); // Refresh user puntos
-      }
+      alert('Cita creada y esperando aprobación del supervisor');
       setShowModal(false);
       setFormData({
         empresa_id: '',
@@ -80,26 +74,40 @@ export default function Citas() {
         tipo: 'llamada',
         fecha_hora: '',
         notas: '',
-        link_videollamada: '',
-        enviar_correo: false
+        link_videollamada: ''
       });
+      loadData();
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al crear cita: ' + error.message);
+    }
+  };
+
+  const getEstadoAprobacionBadge = (estado) => {
+    const estadoObj = estadosAprobacion.find(e => e.value === estado);
+    if (estadoObj) {
+      return (
+        <span className={`text-xs px-2 py-1 rounded-full ${estadoObj.color}`}>
+          {estadoObj.label}
+        </span>
+      );
+    }
+    return null;
+  };
+
+  const handleUpdateEstado = async (id, estado) => {
+    try {
+      await api.updateCita(id, { estado });
       loadData();
     } catch (error) {
       console.error('Error:', error);
     }
   };
 
-  // Get contacto email for current selection
-  const getSelectedContactoEmail = () => {
-    if (!formData.empresa_id || !formData.contacto_id) return null;
-    const empresa = empresas.find(e => e.id === formData.empresa_id);
-    const contacto = empresa?.contactos?.find(c => c.id === formData.contacto_id);
-    return contacto?.email;
-  };
-
-  const handleUpdateEstado = async (id, estado) => {
+  const handleDelete = async (id) => {
+    if (!confirm('¿Estás seguro de eliminar esta cita?')) return;
     try {
-      await api.updateCita(id, { estado });
+      await api.deleteCita(id);
       loadData();
     } catch (error) {
       console.error('Error:', error);
@@ -114,52 +122,35 @@ export default function Citas() {
     return null;
   };
 
-  const getEstadoBadge = (estado) => {
-    const estadoObj = estadosCita.find(e => e.value === estado);
-    return estadoObj ? (
-      <span className={`badge ${estadoObj.color}`}>{estadoObj.label}</span>
-    ) : null;
-  };
-
   const getEmpresaOptions = () => {
-    // Show all empresas assigned to the vendedor, not just interested ones
+    if (user?.role === 'vendedor') {
+      return empresas.filter(e => e.vendedor_id === user.id || !e.vendedor_id);
+    }
     return empresas;
   };
 
-  const handleDelete = async (citaId) => {
-    if (!confirm('¿Estás seguro de eliminar esta cita? Se revertirán los 10 puntos ganados.')) return;
-    
-    try {
-      const result = await api.deleteCita(citaId);
-      alert(`Cita eliminada. Puntos revertidos: ${result.puntos_revertidos || 0}`);
-      loadCitas();
-      refreshUser();
-    } catch (error) {
-      console.error('Error:', error);
-    }
+  const formatFecha = (fecha) => {
+    const d = new Date(fecha);
+    return d.toLocaleDateString('es-GT', { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
-  // Group citas by date
-  const groupedCitas = citas.reduce((acc, cita) => {
-    const date = new Date(cita.fecha_hora).toLocaleDateString('es', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(cita);
-    return acc;
-  }, {});
+  const formatHora = (fecha) => {
+    const d = new Date(fecha);
+    return d.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Citas</h1>
-          <p className="text-gray-500 mt-1">{citas.length} citas registradas</p>
-        </div>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-900">Citas</h1>
         <button
           onClick={() => setShowModal(true)}
           className="btn btn-primary flex items-center gap-2"
@@ -169,12 +160,12 @@ export default function Citas() {
         </button>
       </div>
 
-      {/* Filter */}
+      {/* Filtros */}
       <div className="flex gap-4">
         <select
           value={filterEstado}
           onChange={(e) => setFilterEstado(e.target.value)}
-          className="input md:w-48"
+          className="input w-48"
         >
           <option value="">Todos los estados</option>
           {estadosCita.map(e => (
@@ -183,105 +174,79 @@ export default function Citas() {
         </select>
       </div>
 
-      {/* Citas Cards */}
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        </div>
-      ) : citas.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          No hay citas registradas
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {citas.map((cita) => {
-            const tipoObj = tiposCita.find(t => t.value === cita.tipo);
-            const estadoObj = estadosCita.find(e => e.value === cita.estado);
-            const fecha = new Date(cita.fecha_hora);
-            const isToday = fecha.toDateString() === new Date().toDateString();
-            const isPast = fecha < new Date() && cita.estado === 'pendiente';
-            
-            return (
-              <div 
-                key={cita.id}
-                className={`card hover:shadow-lg transition-shadow ${
-                  isPast ? 'border-l-4 border-red-400' : 
-                  isToday ? 'border-l-4 border-primary-600' : ''
-                }`}
-              >
-                {/* Header */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                    tipoObj?.color || 'bg-gray-100'
-                  }`}>
-                    {tipoObj && <tipoObj.icon className="w-5 h-5" />}
-                  </div>
-                  <span className={`badge ${estadoObj?.color}`}>{estadoObj?.label}</span>
-                </div>
-                
-                {/* Empresa */}
-                <h3 className="font-semibold text-gray-900 text-lg mb-2">
-                  {cita.empresa_nombre}
-                </h3>
-                
-                {/* Fecha y Hora */}
-                <div className="flex items-center gap-2 text-gray-600 mb-2">
-                  <Calendar size={16} className="text-primary-600" />
-                  <span className="font-medium">
-                    {isToday ? 'Hoy' : fecha.toLocaleDateString('es', { weekday: 'short', month: 'short', day: 'numeric' })}
-                  </span>
-                  <Clock size={16} className="text-primary-600 ml-2" />
-                  <span>{fecha.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-                
-                {/* Contacto */}
-                {cita.contacto_nombre && (
-                  <div className="text-sm text-gray-500 mb-2">
-                    👤 {cita.contacto_nombre}
-                  </div>
-                )}
-                
-                {/* Notas */}
-                {cita.notas && (
-                  <p className="text-sm text-gray-500 mb-3 line-clamp-2">
-                    {cita.notas}
-                  </p>
-                )}
-                
-                {/* Link Videollamada */}
-                {cita.link_videollamada && (
-                  <a 
-                    href={cita.link_videollamada}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-purple-600 hover:underline mb-3 bg-purple-50 px-3 py-2 rounded-lg border border-purple-200"
-                  >
-                    <Video size={16} />
-                    <span className="font-medium">Unirse a Videollamada</span>
-                    <span className="text-xs text-purple-400 ml-auto">Jitsi</span>
-                  </a>
-                )}
-                
-                {/* Acciones */}
-                {cita.estado === 'pendiente' && (
-                  <div className="flex gap-2 pt-3 border-t">
-                    <button
-                      onClick={() => handleUpdateEstado(cita.id, 'realizada')}
-                      className="btn btn-success flex-1 text-sm py-2"
-                    >
-                      <CheckCircle size={16} /> Realizada
-                    </button>
-                    <button
-                      onClick={() => handleDelete(cita.id)}
-                      className="btn btn-danger text-sm py-2 px-3"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                )}
+      {/* Lista de citas */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {citas.map(cita => (
+          <div key={cita.id} className="card">
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <h3 className="font-semibold text-gray-900">{cita.empresa_nombre}</h3>
+                <p className="text-sm text-gray-500">{cita.contacto_nombre || 'Sin contacto'}</p>
               </div>
-            );
-          })}
+              <div className={`p-2 rounded-lg ${tiposCita.find(t => t.value === cita.tipo)?.color || 'bg-gray-100'}`}>
+                {getTipoIcon(cita.tipo)}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+              <Calendar size={16} />
+              <span>{formatFecha(cita.fecha_hora)}</span>
+              <Clock size={16} className="ml-2" />
+              <span>{formatHora(cita.fecha_hora)}</span>
+            </div>
+
+            {/* Estado de aprobación */}
+            <div className="mb-3">
+              {getEstadoAprobacionBadge(cita.estado_aprobacion)}
+            </div>
+
+            {/* Link Jitsi si es videollamada */}
+            {cita.link_videollamada && cita.estado_aprobacion === 'aprobada' && (
+              <a
+                href={cita.link_videollamada}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-purple-600 hover:underline flex items-center gap-1 mb-3"
+              >
+                <Video size={14} />
+                Unirse a videollamada
+              </a>
+            )}
+
+            {/* Notas */}
+            {cita.notas && (
+              <p className="text-sm text-gray-600 mb-3">{cita.notas}</p>
+            )}
+
+            {/* Acciones según estado */}
+            <div className="flex gap-2 pt-3 border-t">
+              {cita.estado_aprobacion === 'aprobada' && (
+                <button
+                  onClick={() => handleUpdateEstado(cita.id, 'realizada')}
+                  className="btn btn-success flex-1 text-sm py-2"
+                >
+                  <CheckCircle size={16} /> Realizada
+                </button>
+              )}
+              {cita.estado_aprobacion === 'pendiente_aprobacion' && user?.role === 'vendedor' && (
+                <span className="text-sm text-yellow-600 flex items-center gap-1 py-2">
+                  <AlertCircle size={16} /> Esperando...
+                </span>
+              )}
+              <button
+                onClick={() => handleDelete(cita.id)}
+                className="btn btn-danger text-sm py-2 px-3"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {citas.length === 0 && (
+        <div className="text-center py-12 text-gray-500">
+          No hay citas agendadas
         </div>
       )}
 
@@ -308,7 +273,6 @@ export default function Citas() {
                 </select>
               </div>
 
-              {/* Selector de Contacto */}
               {formData.empresa_id && (
                 <div>
                   <label className="label">Contacto (opcional)</label>
@@ -368,14 +332,13 @@ export default function Citas() {
                 />
               </div>
 
-              {/* Checkbox generar link Jitsi */}
               {formData.tipo === 'videollamada' && (
                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                   <div className="flex items-center gap-3">
                     <Video className="w-5 h-5 text-purple-600" />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-purple-800">Videollamada Jitsi</p>
-                      <p className="text-xs text-purple-600">Se generará un link automático para la videollamada</p>
+                      <p className="text-xs text-purple-600">Se generará un link automático</p>
                     </div>
                     <span className="text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded">Auto</span>
                   </div>
@@ -384,27 +347,10 @@ export default function Citas() {
 
               <div className="bg-yellow-50 p-4 rounded-lg">
                 <p className="text-sm text-yellow-800">
-                  <strong>+10 puntos</strong> al agendar una cita
+                  <strong>⏳ Esperando aprobación</strong><br/>
+                  Un supervisor debe aprobar esta cita para que sea válida y puedas ganar puntos.
                 </p>
               </div>
-
-              {/* Enviar correo checkbox */}
-              {formData.contacto_id && getSelectedContactoEmail() && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.enviar_correo}
-                      onChange={(e) => setFormData({ ...formData, enviar_correo: e.target.checked })}
-                      className="w-5 h-5 rounded text-blue-600"
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-blue-800">✉️ Enviar correo al contacto</p>
-                      <p className="text-xs text-blue-600">Se enviará a: {getSelectedContactoEmail()}</p>
-                    </div>
-                  </label>
-                </div>
-              )}
 
               <div className="flex gap-3 pt-4">
                 <button

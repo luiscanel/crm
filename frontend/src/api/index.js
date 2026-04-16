@@ -199,6 +199,23 @@ export const api = {
   getCitasStats: () => 
     fetch(`${API_URL}/citas/stats`, { headers: headers() }).then(res => res.json()),
 
+  getCitasPendientesAprobacion: () => 
+    fetch(`${API_URL}/citas/pendientes-aprobacion`, { headers: headers() }).then(res => res.json()),
+
+  aprobarCita: (id, data) => 
+    fetch(`${API_URL}/citas/${id}/aprobar`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(data)
+    }).then(res => res.json()),
+
+  rechazarCita: (id, data) => 
+    fetch(`${API_URL}/citas/${id}/rechazar`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(data)
+    }).then(res => res.json()),
+
   // Gamificación
   getPoints: () => 
     fetch(`${API_URL}/gamificacion/points`, { headers: headers() }).then(res => res.json()),

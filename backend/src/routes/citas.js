@@ -1,7 +1,6 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
-const { authenticateToken } = require('../middleware/auth');
-const { getSettings, sendEmail, sendEmailWithTemplate } = require('../services/email');
+const { authenticateToken, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -9,10 +8,10 @@ const router = express.Router();
 router.get('/', authenticateToken, (req, res) => {
   try {
     const db = req.db;
-    const { empresa_id, vendedor_id, estado, fecha } = req.query;
+    const { empresa_id, vendedor_id, estado, fecha, estado_aprobacion } = req.query;
     
     let query = `
-      SELECT ct.*, e.nombre as empresa_nombre, c.nombre as contacto_nombre, u.name as vendedor_nombre
+      SELECT ct.*, e.nombre as empresa_nombre, c.nombre as contacto_nombre, c.telefono as contacto_telefono, u.name as vendedor_nombre
       FROM citas ct
       LEFT JOIN empresas e ON ct.empresa_id = e.id
       LEFT JOIN contactos c ON ct.contacto_id = c.id
@@ -39,6 +38,11 @@ router.get('/', authenticateToken, (req, res) => {
       params.push(estado);
     }
 
+    if (estado_aprobacion) {
+      query += ' AND ct.estado_aprobacion = ?';
+      params.push(estado_aprobacion);
+    }
+
     if (fecha) {
       query += ' AND ct.fecha_hora LIKE ?';
       params.push(fecha + '%');
@@ -51,6 +55,29 @@ router.get('/', authenticateToken, (req, res) => {
   } catch (error) {
     console.error('Get citas error:', error);
     res.status(500).json({ error: 'Error al obtener citas' });
+  }
+});
+
+// Get citas pendientes de aprobación (supervisor)
+router.get('/pendientes-aprobacion', authenticateToken, requireRole(['admin', 'supervisor']), (req, res) => {
+  try {
+    const db = req.db;
+    
+    const query = `
+      SELECT ct.*, e.nombre as empresa_nombre, c.nombre as contacto_nombre, c.telefono as contacto_telefono, u.name as vendedor_nombre
+      FROM citas ct
+      LEFT JOIN empresas e ON ct.empresa_id = e.id
+      LEFT JOIN contactos c ON ct.contacto_id = c.id
+      LEFT JOIN users u ON ct.vendedor_id = u.id
+      WHERE ct.estado_aprobacion = 'pendiente_aprobacion'
+      ORDER BY ct.created_at DESC
+    `;
+
+    const citas = db.all(query, []);
+    res.json(citas);
+  } catch (error) {
+    console.error('Get pending approval citas error:', error);
+    res.status(500).json({ error: 'Error al obtener citas pendientes' });
   }
 });
 
@@ -67,6 +94,7 @@ router.get('/upcoming', authenticateToken, (req, res) => {
       LEFT JOIN empresas e ON ct.empresa_id = e.id
       LEFT JOIN contactos c ON ct.contacto_id = c.id
       WHERE ct.estado = 'pendiente' 
+      AND ct.estado_aprobacion = 'aprobada'
       AND ct.fecha_hora BETWEEN ? AND ?
     `;
     const params = [today + ' 00:00:00', nextWeek + ' 23:59:59'];
@@ -86,11 +114,11 @@ router.get('/upcoming', authenticateToken, (req, res) => {
   }
 });
 
-// Create cita
-router.post('/', authenticateToken, async (req, res) => {
+// Create cita - vendedor crea cita pendiente de aprobación
+router.post('/', authenticateToken, (req, res) => {
   try {
     const db = req.db;
-    const { empresa_id, contacto_id, tipo, fecha_hora, notas, link_videollamada, enviar_correo } = req.body;
+    const { empresa_id, contacto_id, tipo, fecha_hora, notas, link_videollamada } = req.body;
 
     if (!empresa_id || !tipo || !fecha_hora) {
       return res.status(400).json({ error: 'Empresa, tipo y fecha de cita requeridos' });
@@ -102,14 +130,6 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Empresa no encontrada' });
     }
 
-    // Get contacto info if provided
-    let contacto = null;
-    let contactoEmail = null;
-    if (contacto_id) {
-      contacto = db.get('SELECT nombre, email FROM contactos WHERE id = ?', [contacto_id]);
-      contactoEmail = contacto?.email;
-    }
-
     // Generar link de Jitsi automáticamente si es videollamada y no hay link
     let meetingUrl = link_videollamada || '';
     if (tipo === 'videollamada' && !meetingUrl) {
@@ -119,19 +139,11 @@ router.post('/', authenticateToken, async (req, res) => {
 
     const id = uuidv4();
 
+    // Create cita with pendiente_aprobacion state - NO POINTS YET
     db.run(
-      `INSERT INTO citas (id, empresa_id, vendedor_id, contacto_id, tipo, fecha_hora, estado, notas, link_videollamada) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, empresa_id, req.user.id, contacto_id || null, tipo, fecha_hora, 'pendiente', notas || '', meetingUrl]
+      `INSERT INTO citas (id, empresa_id, vendedor_id, contacto_id, tipo, fecha_hora, estado, estado_aprobacion, notas, link_videollamada) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, empresa_id, req.user.id, contacto_id || null, tipo, fecha_hora, 'pendiente', 'pendiente_aprobacion', notas || '', meetingUrl]
     );
-
-    // Check if empresa already had a pending cita - only award points if this is the FIRST cita
-    const empresaActual = db.get('SELECT estado FROM empresas WHERE id = ?', [empresa_id]);
-    const citaPrevia = db.get('SELECT id FROM citas WHERE empresa_id = ? AND estado = ?', [empresa_id, 'pendiente']);
-    
-    // Only give points if: empresa was NOT already in cita_agendada AND no previous pending cita
-    if (empresaActual.estado !== 'cita_agendada' && !citaPrevia) {
-      db.run('UPDATE users SET puntos = puntos + 10 WHERE id = ?', [req.user.id]);
-    }
 
     // Update empresa estado to "cita_agendada"
     db.run(
@@ -142,75 +154,99 @@ router.post('/', authenticateToken, async (req, res) => {
     // Log activity
     db.run(
       `INSERT INTO activity_log (id, user_id, action, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?, ?)`,
-      [uuidv4(), req.user.id, 'create_cita', 'cita', id, 
-        `Scheduled cita with ${empresa.nombre} - Tipo: ${tipo} - Puntos: +10`]
+      [uuidv4(), req.user.id, 'create_cita_pendiente', 'cita', id, 
+        `Cita creada con ${empresa.nombre} - Tipo: ${tipo} - Esperando aprobación`]
     );
 
-    // Send email if requested
-    let emailSent = false;
-    let emailError = null;
-    if (enviar_correo && contactoEmail) {
-      console.log('[CITA EMAIL] Sending email to:', contactoEmail);
-      console.log('[CITA EMAIL] Enviar correo:', enviar_correo);
-      try {
-        const settings = getSettings(db);
-        console.log('[CITA EMAIL] Settings loaded:', {
-          smtp_host: settings.smtp_host ? 'set' : 'missing',
-          smtp_user: settings.smtp_user ? 'set' : 'missing',
-          smtp_password: settings.smtp_password ? 'set' : 'missing',
-          smtp_from_email: settings.smtp_from_email
-        });
-        
-        if (settings.smtp_host && settings.smtp_user && settings.smtp_password) {
-          const fechaObj = new Date(fecha_hora);
-          const fechaFormateada = fechaObj.toLocaleDateString('es-GT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-          const horaFormateada = fechaObj.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
-          
-          console.log('[CITA EMAIL] About to send email...');
-          
-          await sendEmail(
-            settings,
-            contactoEmail,
-            `📅 Cita agendada - ${empresa.nombre}`,
-            `
-              <h2>📅 Confirmación de Cita</h2>
-              <p>Hola <strong>${contacto.nombre}</strong>,</p>
-              <p>Se ha agendado una cita con <strong>${empresa.nombre}</strong>.</p>
-              <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">
-                <p><strong>📅 Fecha:</strong> ${fechaFormateada}</p>
-                <p><strong>⏰ Hora:</strong> ${horaFormateada}</p>
-                <p><strong>🏢 Empresa:</strong> ${empresa.nombre}</p>
-                <p><strong>📋 Tipo:</strong> ${tipo === 'videollamada' ? 'Videollamada' : tipo === 'presencial' ? 'Presencial' : 'Llamada telefónica'}</p>
-                ${notas ? `<p><strong>📝 Notas:</strong> ${notas}</p>` : ''}
-                ${meetingUrl ? `<p><strong>🔗 Enlace:</strong> <a href="${meetingUrl}">${meetingUrl}</a></p>` : ''}
-              </div>
-              <p>Saludos,<br>Equipo Teknao CRM</p>
-            `
-          );
-          emailSent = true;
-          console.log('[CITA EMAIL] Email sent successfully!');
-        } else {
-          emailError = 'SMTP no configurado';
-          console.log('[CITA EMAIL] SMTP not configured');
-        }
-      } catch (err) {
-        console.error('[CITA EMAIL] Error sending cita email:', err);
-        emailError = err.message;
-      }
-    }
-
-    const userUpdated = db.get('SELECT puntos FROM users WHERE id = ?', [req.user.id]);
-
     res.status(201).json({ 
-      message: 'Cita agendada', 
+      message: 'Cita creada y pendiente de aprobación',
       id,
-      puntos_totales: userUpdated.puntos,
-      email_sent: emailSent,
-      email_error: emailError
+      estado_aprobacion: 'pendiente_aprobacion'
     });
   } catch (error) {
     console.error('Create cita error:', error);
     res.status(500).json({ error: 'Error al agendar cita' });
+  }
+});
+
+// Aprobar cita - supervisor
+router.post('/:id/aprobar', authenticateToken, requireRole(['admin', 'supervisor']), (req, res) => {
+  try {
+    const db = req.db;
+    const { nota } = req.body;
+
+    const existing = db.get('SELECT * FROM citas WHERE id = ?', [req.params.id]);
+    if (!existing) {
+      return res.status(404).json({ error: 'Cita no encontrada' });
+    }
+
+    if (existing.estado_aprobacion !== 'pendiente_aprobacion') {
+      return res.status(400).json({ error: 'Esta cita ya fue procesada' });
+    }
+
+    // Update cita as approved
+    db.run(
+      `UPDATE citas SET estado_aprobacion = ?, approved_by = ?, approved_at = CURRENT_TIMESTAMP, approval_note = ? WHERE id = ?`,
+      ['aprobada', req.user.id, nota || '', req.params.id]
+    );
+
+    // Add +10 points to vendedor
+    db.run('UPDATE users SET puntos = puntos + 10 WHERE id = ?', [existing.vendedor_id]);
+
+    // Log activity
+    db.run(
+      `INSERT INTO activity_log (id, user_id, action, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?, ?)`,
+      [uuidv4(), req.user.id, 'approve_cita', 'cita', req.params.id, 
+        `Cita aprobada por supervisor - Puntos: +10 al vendedor`]
+    );
+
+    const vendedor = db.get('SELECT name, puntos FROM users WHERE id = ?', [existing.vendedor_id]);
+
+    res.json({ 
+      message: 'Cita aprobada',
+      puntos_vendedor: vendedor.puntos
+    });
+  } catch (error) {
+    console.error('Approve cita error:', error);
+    res.status(500).json({ error: 'Error al aprobar cita' });
+  }
+});
+
+// Rechazar cita - supervisor
+router.post('/:id/rechazar', authenticateToken, requireRole(['admin', 'supervisor']), (req, res) => {
+  try {
+    const db = req.db;
+    const { nota } = req.body;
+
+    const existing = db.get('SELECT * FROM citas WHERE id = ?', [req.params.id]);
+    if (!existing) {
+      return res.status(404).json({ error: 'Cita no encontrada' });
+    }
+
+    if (existing.estado_aprobacion !== 'pendiente_aprobacion') {
+      return res.status(400).json({ error: 'Esta cita ya fue procesada' });
+    }
+
+    // Update cita as rejected
+    db.run(
+      `UPDATE citas SET estado_aprobacion = ?, approved_by = ?, approved_at = CURRENT_TIMESTAMP, approval_note = ? WHERE id = ?`,
+      ['rechazada', req.user.id, nota || '', req.params.id]
+    );
+
+    // Log activity - NO POINTS for rejected
+    db.run(
+      `INSERT INTO activity_log (id, user_id, action, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?, ?)`,
+      [uuidv4(), req.user.id, 'reject_cita', 'cita', req.params.id, 
+        `Cita rechazada por supervisor - Sin puntos`]
+    );
+
+    res.json({ 
+      message: 'Cita rechazada',
+      puntos_concedidos: 0
+    });
+  } catch (error) {
+    console.error('Reject cita error:', error);
+    res.status(500).json({ error: 'Error al rechazar cita' });
   }
 });
 
@@ -247,12 +283,15 @@ router.put('/:id', authenticateToken, (req, res) => {
 
     // If cita completed, assign extra points
     if (estado === 'realizada' && existing.estado !== 'realizada') {
-      db.run('UPDATE users SET puntos = puntos + 5 WHERE id = ?', [req.user.id]);
-      
-      db.run(
-        `INSERT INTO activity_log (id, user_id, action, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?, ?)`,
-        [uuidv4(), req.user.id, 'complete_cita', 'cita', req.params.id, 'Cita completada - Puntos: +5']
-      );
+      // Only give completion points if cita was approved
+      if (existing.estado_aprobacion === 'aprobada') {
+        db.run('UPDATE users SET puntos = puntos + 5 WHERE id = ?', [existing.vendedor_id]);
+        
+        db.run(
+          `INSERT INTO activity_log (id, user_id, action, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?, ?)`,
+          [uuidv4(), existing.vendedor_id, 'complete_cita', 'cita', req.params.id, 'Cita completada - Puntos: +5']
+        );
+      }
     }
 
     res.json({ message: 'Cita actualizada' });
@@ -271,23 +310,24 @@ router.delete('/:id', authenticateToken, (req, res) => {
       return res.status(404).json({ error: 'Cita no encontrada' });
     }
 
-    // Reverse 10 puntos that were awarded when cita was created (don't go below 0)
-    const usuario = db.get('SELECT puntos FROM users WHERE id = ?', [existing.vendedor_id]);
-    const puntosReales = Math.min(10, usuario.puntos);
-    if (puntosReales > 0) {
-      db.run('UPDATE users SET puntos = puntos - ? WHERE id = ?', [puntosReales, existing.vendedor_id]);
+    // Only delete if not yet approved (no points to revert)
+    if (existing.estado_aprobacion === 'aprobada') {
+      // Reverse 10 puntos that were awarded when cita was approved (don't go below 0)
+      const usuario = db.get('SELECT puntos FROM users WHERE id = ?', [existing.vendedor_id]);
+      const puntosReales = Math.min(10, usuario.puntos);
+      if (puntosReales > 0) {
+        db.run('UPDATE users SET puntos = puntos - ? WHERE id = ?', [puntosReales, existing.vendedor_id]);
+      }
     }
     
     // Log activity
-    const { v4: uuidv4 } = require('uuid');
     db.run(
       `INSERT INTO activity_log (id, user_id, action, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?, ?)`,
-      [uuidv4(), req.user.id, 'delete_cita', 'cita', req.params.id, `Deleted cita (-10 puntos revertidos)`]
+      [uuidv4(), req.user.id, 'delete_cita', 'cita', req.params.id, `Cita eliminada`]
     );
 
     db.run('DELETE FROM citas WHERE id = ?', [req.params.id]);
-
-    res.json({ message: 'Cita eliminada', puntos_revertidos: 10 });
+    res.json({ message: 'Cita eliminada' });
   } catch (error) {
     console.error('Delete cita error:', error);
     res.status(500).json({ error: 'Error al eliminar cita' });
@@ -310,16 +350,26 @@ router.get('/stats', authenticateToken, (req, res) => {
     // Citas by estado
     const porEstado = db.all(`SELECT estado, COUNT(*) as count FROM citas GROUP BY estado`);
 
+    // Citas by estado_aprobacion
+    const porAprobacion = db.all(`SELECT estado_aprobacion, COUNT(*) as count FROM citas GROUP BY estado_aprobacion`);
+
     // Citas today
     const citasHoy = db.get(
       `SELECT COUNT(*) as count FROM citas WHERE fecha_hora LIKE ?`,
       [today + '%']
     );
 
+    // Pending approval count
+    const pendientes = db.get(
+      `SELECT COUNT(*) as count FROM citas WHERE estado_aprobacion = 'pendiente_aprobacion'`
+    );
+
     res.json({
       total_mes: citasMes.count,
       hoy: citasHoy.count,
-      por_estado: porEstado
+      pendientes_aprobacion: pendientes.count,
+      por_estado: porEstado,
+      por_aprobacion: porAprobacion
     });
   } catch (error) {
     console.error('Get cita stats error:', error);

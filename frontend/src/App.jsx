@@ -16,6 +16,7 @@ import Reportes from './pages/Reportes';
 import Usuarios from './pages/Usuarios';
 import SolicitudesPremios from './pages/SolicitudesPremios';
 import Settings from './pages/Settings';
+import CitasPendientes from './pages/CitasPendientes';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading } = useAuth();
@@ -106,6 +107,7 @@ function AppRoutes() {
           <Route path="usuarios" element={<ProtectedRoute allowedRoles={['admin', 'supervisor']}><Usuarios /></ProtectedRoute>} />
           <Route path="solicitudes-premios" element={<ProtectedRoute allowedRoles={['admin']}><SolicitudesPremios /></ProtectedRoute>} />
           <Route path="configuracion" element={<ProtectedRoute allowedRoles={['admin']}><Settings /></ProtectedRoute>} />
+          <Route path="aprobacion-citas" element={<ProtectedRoute allowedRoles={['admin', 'supervisor']}><CitasPendientes /></ProtectedRoute>} />
         </Route>
         <Route
           path="/admin"
@@ -127,6 +129,7 @@ function AppRoutes() {
           <Route path="usuarios" element={<ProtectedRoute allowedRoles={['admin', 'supervisor']}><Usuarios /></ProtectedRoute>} />
           <Route path="solicitudes-premios" element={<ProtectedRoute allowedRoles={['admin']}><SolicitudesPremios /></ProtectedRoute>} />
           <Route path="configuracion" element={<ProtectedRoute allowedRoles={['admin']}><Settings /></ProtectedRoute>} />
+          <Route path="aprobacion-citas" element={<ProtectedRoute allowedRoles={['admin', 'supervisor']}><CitasPendientes /></ProtectedRoute>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
