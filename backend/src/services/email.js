@@ -17,22 +17,32 @@ function createTransporter(settings) {
     throw new Error('Configuración SMTP incompleta');
   }
 
+  const port = parseInt(settings.smtp_port) || 587;
+  const secure = settings.smtp_port === '465';
+
+  // For Zoho and other providers that support alias
+  const authUser = settings.smtp_user;
+  const fromEmail = settings.smtp_from_email || settings.smtp_user;
+
   const transporter = nodemailer.createTransport({
     host: settings.smtp_host,
-    port: parseInt(settings.smtp_port) || 587,
-    secure: settings.smtp_port === '465',
+    port: port,
+    secure: secure,
     auth: {
-      user: settings.smtp_user,
+      user: authUser,
       pass: settings.smtp_password
-    }
+    },
+    tls: settings.smtp_host.includes('zoho') ? {
+      rejectUnauthorized: false
+    } : undefined
   });
 
-  return transporter;
+  return { transporter, fromEmail };
 }
 
 // Test SMTP connection
 async function testConnection(settings) {
-  const transporter = createTransporter(settings);
+  const { transporter } = createTransporter(settings);
   
   // Verify connection
   await transporter.verify();
@@ -42,10 +52,10 @@ async function testConnection(settings) {
 
 // Send email
 async function sendEmail(settings, to, subject, html) {
-  const transporter = createTransporter(settings);
+  const { transporter, fromEmail } = createTransporter(settings);
   
   const mailOptions = {
-    from: `"${settings.smtp_from_name || 'Teknao CRM'}" <${settings.smtp_from_email || settings.smtp_user}>`,
+    from: `"${settings.smtp_from_name || 'Teknao CRM'}" <${fromEmail}>`,
     to: to,
     subject: subject,
     html: html
