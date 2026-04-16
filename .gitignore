@@ -9,6 +9,7 @@ dist/
 
 # Environment variables
 .env
+.env.*
 
 # Database
 *.db
@@ -25,3 +26,9 @@ dist/
 
 # Temp CSV files
 *.csv
+
+# SSL Certificates (never commit these)
+ssl/*.pem
+ssl/*.key
+ssl/*.crt
+!ssl/README.md

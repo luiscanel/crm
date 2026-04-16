@@ -150,20 +150,36 @@ docker-compose up -d
 
 ---
 
-## 8. Configurar Dominio (Opcional)
+## 8. Configurar SSL (Puerto 443)
 
-Si tienes un dominio:
+### Generar certificados SSL:
 
-1. Configura DNS pointing a tu servidor
-2. Edita `frontend/nginx.conf`:
-```nginx
-server_name tudominio.com;
-```
-3. Reinicia:
 ```bash
-docker-compose down
-docker-compose up -d
+# Crear directorio para SSL
+mkdir -p ssl
+
+# Generar certificado autofirmado (para pruebas)
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout ssl/key.pem -out ssl/cert.pem \
+  -subj "/C=GT/ST=Guatemala/L=Guatemala/O=Teknao/OU=CRM/CN=tu-dominio.com"
 ```
+
+### Usar Let's Encrypt (producción):
+```bash
+# Instalar certbot
+sudo apt install -y certbot
+
+# Generar certificado
+sudo certbot certonly --standalone -d tudominio.com
+
+# Copiar certificados
+sudo cp /etc/letsencrypt/live/tudominio.com/fullchain.pem ssl/cert.pem
+sudo cp /etc/letsencrypt/live/tudominio.com/privkey.pem ssl/key.pem
+```
+
+La aplicación ahora:
+- Puerto 80 → Redirect a HTTPS (443)
+- Puerto 443 → HTTPS con SSL
 
 ---
 
@@ -185,9 +201,9 @@ scp /ruta/backup/crm.db usuario@nuevo-servidor:/home/usuario/crm/backend/data/
 
 | Puerto | Servicio |
 |--------|----------|
-| 80 | Frontend Nginx |
+| 80 | HTTP (redirect a HTTPS) |
+| 443 | HTTPS |
 | 3001 | Backend API |
-| 5376-5378 | Docker interno |
 
 ---
 
