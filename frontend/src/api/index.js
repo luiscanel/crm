@@ -378,5 +378,19 @@ export const api = {
     fetch(`${API_URL}/settings/${key}`, {
       method: 'DELETE',
       headers: headers()
+    }).then(res => res.json()),
+
+  // Email - Test SMTP connection
+  testEmailConnection: () =>
+    fetch(`${API_URL}/email/test-email`, {
+      method: 'POST',
+      headers: headers()
+    }).then(res => res.json()),
+
+  sendTestEmail: (email) =>
+    fetch(`${API_URL}/email/send-test-email`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ email })
     }).then(res => res.json())
 };

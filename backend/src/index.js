@@ -72,6 +72,7 @@ async function startServer() {
     const tareasRoutes = require('./routes/tareas');
     const adminRoutes = require('./routes/admin');
     const settingsRoutes = require('./routes/settings');
+    const emailRoutes = require('./routes/email');
 
     // API Routes
     app.use('/api/auth', authRoutes);
@@ -86,6 +87,7 @@ async function startServer() {
     app.use('/api/tareas', tareasRoutes);
     app.use('/api/admin', adminRoutes);
     app.use('/api/settings', settingsRoutes);
+    app.use('/api/email', emailRoutes);
 
     // Health check
     app.get('/api/health', (req, res) => {

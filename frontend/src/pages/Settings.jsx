@@ -50,11 +50,14 @@ export default function SettingsPage() {
     setTesting(true);
     setTestResult(null);
     try {
-      // Simulate email test (in real implementation would call backend)
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setTestResult({ success: true, message: 'Conexión exitosa con el servidor SMTP' });
+      const result = await api.testEmailConnection();
+      if (result.success) {
+        setTestResult({ success: true, message: result.message || 'Conexión exitosa con el servidor SMTP' });
+      } else {
+        setTestResult({ success: false, message: result.error || 'Error al conectar con el servidor SMTP' });
+      }
     } catch (error) {
-      setTestResult({ success: false, message: 'Error al conectar con el servidor SMTP' });
+      setTestResult({ success: false, message: error.message || 'Error al conectar con el servidor SMTP' });
     } finally {
       setTesting(false);
     }
