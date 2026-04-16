@@ -468,7 +468,7 @@ export default function Empresas() {
                     {empresa.telefono ? (
                       <div className="flex items-center gap-1">
                         <a 
-                          href={`https://wa.me/52${empresa.telefono.replace(/\D/g, '')}?text=Hola%20de%20${encodeURIComponent(empresa.nombre)}`}
+                          href={`https://wa.me/502${empresa.telefono.replace(/\D/g, '')}?text=Hola%20de%20${encodeURIComponent(empresa.nombre)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-green-600 hover:text-green-700 flex items-center gap-1"
@@ -840,7 +840,7 @@ export default function Empresas() {
                                   {contacto.telefono}
                                 </a>
                                 <a 
-                                  href={`https://wa.me/52${contacto.telefono.replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(contacto.nombre.split(' ')[0])},%20me%20contacto%20de%20su%20empresa.%20¿Podemos%20hablar?`}
+                                  href={`https://wa.me/502${contacto.telefono.replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(contacto.nombre.split(' ')[0])},%20me%20contacto%20de%20su%20empresa.%20¿Podemos%20hablar?`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-green-500 hover:text-green-600 ml-1"
