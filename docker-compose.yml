@@ -10,24 +10,11 @@ services:
       - "3001:3001"
     volumes:
       - ./backend/data:/app/data
+    env_file:
+      - ./backend/.env
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - PORT=3001
-    networks:
-      - crm-network
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: crm-frontend
-    ports:
-      - "5173:5173"
-    environment:
-      - VITE_API_URL=/api
-    depends_on:
-      - backend
     networks:
       - crm-network
     restart: unless-stopped
